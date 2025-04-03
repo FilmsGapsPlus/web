@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FilmsGapsPlus - Peliculas Online</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <style>
+        :root {
+            --primary-color: #212121;
+            --secondary-color: #303030;
+            --accent-color: #424242;
+            --text-primary: #ffffff;
+            --text-secondary: #bdbdbd;
+            --highlight: #f5c518;
+            --highlight-red: #ff0000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            background-color: var(--primary-color);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        header {
+            background-color: var(--secondary-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .logo span {
+            color: var(--highlight-red);
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+            background-color: var(--accent-color);
+            border-radius: 30px;
+            padding: 0.5rem 1rem;
+            width: 50%;
+            max-width: 500px;
+        }
+
+        .search-container input {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            width: 100%;
+            padding: 0.5rem;
+            outline: none;
+            font-size: 1rem;
+        }
+
+        .search-container button {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        main {
+            padding: 2rem;
+        }
+
+        .genre-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .section-title {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+
+        .movies-row {
+            display: flex;
+            overflow-x: auto;
+            gap: 1rem;
+            padding-bottom: 1rem;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-color) var(--secondary-color);
+        }
+
+        .movies-row::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .movies-row::-webkit-scrollbar-track {
+            background: var(--secondary-color);
+            border-radius: 10px;
+        }
+
+        .movies-row::-webkit-scrollbar-thumb {
+            background-color: var(--accent-color);
+            border-radius: 10px;
+        }
+
+        .movie-card {
+            background-color: var(--secondary-color);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            flex: 0 0 auto;
+            width: 200px;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .movie-poster {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+        }
+
+        .movie-info {
+            padding: 1rem;
+        }
+
+        .movie-title {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .movie-meta {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .loading .spinner {
+            margin-right: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 200;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background-color: var(--secondary-color);
+            margin: 2rem auto;
+            max-width: 800px;
+            border-radius: 8px;
+            overflow: hidden;
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            position: relative;
+        }
+
+        .modal-backdrop {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            filter: brightness(0.5);
+        }
+
+        .modal-poster {
+            position: absolute;
+            bottom: -50px;
+            left: 30px;
+            width: 150px;
+            height: 225px;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-body {
+            padding: 2rem;
+            padding-top: 3rem;
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .modal-genres {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .genre-tag {
+            background-color: var(--accent-color);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .modal-description {
+            margin: 1.5rem 0;
+            line-height: 1.6;
+        }
+
+        .modal-cast {
+            margin: 1.5rem 0;
+        }
+
+        .cast-title {
+            font-size: 1.2rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .cast-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .cast-member {
+            background-color: var(--accent-color);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .servers-section {
+            margin-top: 2rem;
+        }
+
+        .servers-title {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .server-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--accent-color);
+            margin-bottom: 1rem;
+        }
+
+        .server-tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .server-tab.active {
+            border-bottom: 2px solid var(--highlight);
+            color: var(--highlight);
+        }
+
+        .server-content {
+            display: none;
+        }
+
+        .server-content.active {
+            display: block;
+        }
+
+        .server-option {
+            background-color: var(--accent-color);
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .server-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .server-name {
+            font-weight: 500;
+        }
+
+        .server-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.3rem;
+        }
+
+        .watch-btn {
+            background-color: var(--highlight);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .watch-btn:hover {
+            background-color: #ffd700;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                padding: 1rem;
+            }
+
+            .logo {
+                margin-bottom: 1rem;
+            }
+
+            .search-container {
+                width: 100%;
+            }
+
+            .movie-card {
+                width: 150px;
+            }
+
+            .movie-poster {
+                height: 225px;
+            }
+
+            .modal-content {
+                margin: 0;
+                border-radius: 0;
+                width: 100%;
+            }
+
+            .modal-backdrop {
+                height: 200px;
+            }
+
+            .modal-poster {
+                width: 100px;
+                height: 150px;
+                left: 15px;
+                bottom: -30px;
+            }
+
+            .modal-body {
+                padding: 1.5rem;
+                padding-top: 2rem;
+            }
+
+            .modal-title {
+                font-size: 1.4rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .movie-card {
+                width: 120px;
+            }
+
+            .movie-poster {
+                height: 180px;
+            }
+
+            .modal-backdrop {
+                height: 150px;
+            }
+
+            .modal-poster {
+                width: 80px;
+                height: 120px;
+            }
+
+            .modal-body {
+                padding: 1rem;
+                padding-top: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">FilmsGaps<span>Plus</span></div>
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Buscar películas...">
+            <button id="search-btn">
+                <i class="material-icons">search</i>
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <div id="genres-container">
+            <!-- Las secciones por género se cargarán aquí -->
+        </div>
+        <div class="loading" id="loading">
+            <i class="material-icons spinner">autorenew</i>
+            <span>Cargando películas...</span>
+        </div>
+    </main>
+
+    <!-- Modal de detalles de película -->
+    <div class="modal" id="movie-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <img class="modal-backdrop" id="modal-backdrop" src="" alt="Backdrop">
+                <img class="modal-poster" id="modal-poster" src="" alt="Poster">
+                <button class="modal-close" id="modal-close">
+                    <i class="material-icons">close</i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <h1 class="modal-title" id="modal-title"></h1>
+                <div class="modal-meta">
+                    <span id="modal-year"></span>
+                    <span id="modal-duration"></span>
+                </div>
+                <div class="modal-genres" id="modal-genres">
+                    <!-- Los géneros se cargarán aquí -->
+                </div>
+                <p class="modal-description" id="modal-description"></p>
+                
+                <div class="modal-cast">
+                    <h3 class="cast-title">Reparto</h3>
+                    <div class="cast-list" id="cast-list">
+                        <!-- El reparto se cargará aquí -->
+                    </div>
+                </div>
+                
+                <div class="servers-section">
+                    <h3 class="servers-title">Opciones de reproducción</h3>
+                    <div class="server-tabs" id="server-tabs">
+                        <!-- Las pestañas de servidores se cargarán aquí -->
+                    </div>
+                    <div id="server-contents">
+                        <!-- Los contenidos de servidores se cargarán aquí -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const genresContainer = document.getElementById('genres-container');
+            const loadingElement = document.getElementById('loading');
+            const searchInput = document.getElementById('search-input');
+            const searchBtn = document.getElementById('search-btn');
+            const movieModal = document.getElementById('movie-modal');
+            const modalClose = document.getElementById('modal-close');
+            
+            // Lista de géneros disponibles
+            const allGenres = [
+                "Accion", "Animacion", "Anime", "Aventura", "Belica", 
+                "Ciencia Ficcion", "Comedia", "Crimen", "Documental", 
+                "Drama", "Familia", "Fantasia", "Historia", "Infantil", 
+                "Misterio", "Musica", "News", "Película de TV", "Politica", 
+                "Reality", "Romance", "Suspenso", "Talk", "Telenovela", 
+                "Terror", "Western"
+            ];
+            
+            // Variables para el estado de la aplicación
+            let isLoading = false;
+            let allMovies = [];
+
+            // Función para cargar todas las películas
+            async function loadAllMovies() {
+                isLoading = true;
+                loadingElement.style.display = 'flex';
+                genresContainer.innerHTML = '';
+                
+                try {
+                    const response = await fetch(`https://anusdbs.onrender.com/movies?api-key=5404383ab&limit=1000&random`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.data.length > 0) {
+                        allMovies = data.data;
+                        organizeMoviesByGenre();
+                    } else {
+                        genresContainer.innerHTML = '<p>No se encontraron películas</p>';
+                    }
+                } catch (error) {
+                    console.error('Error al cargar películas:', error);
+                    genresContainer.innerHTML = '<p>Error al cargar las películas</p>';
+                } finally {
+                    isLoading = false;
+                    loadingElement.style.display = 'none';
+                }
+            }
+
+            // Función para organizar películas por género
+            function organizeMoviesByGenre() {
+                // Primero agrupamos las películas por género
+                const moviesByGenre = {};
+                
+                allGenres.forEach(genre => {
+                    moviesByGenre[genre] = allMovies.filter(movie => 
+                        movie.generos && movie.generos.includes(genre)
+                    );
+                });
+                
+                // Ahora mostramos cada género que tenga películas
+                displayGenresWithMovies(moviesByGenre);
+            }
+
+            // Función para mostrar géneros con sus películas
+            function displayGenresWithMovies(moviesByGenre) {
+                genresContainer.innerHTML = '';
+                
+                // Mostrar primero las películas más recientes
+                const recentMovies = allMovies.filter(movie => movie.año === "2025");
+                if (recentMovies.length > 0) {
+                    createGenreSection("Películas Recientes", recentMovies);
+                }
+                
+                // Luego mostrar los géneros
+                for (const [genre, movies] of Object.entries(moviesByGenre)) {
+                    if (movies.length > 0) {
+                        createGenreSection(genre, movies);
+                    }
+                }
+            }
+
+            // Función para crear una sección de género con sus películas
+            function createGenreSection(genreTitle, movies) {
+                const section = document.createElement('div');
+                section.className = 'genre-section';
+                
+                const title = document.createElement('h2');
+                title.className = 'section-title';
+                title.textContent = genreTitle;
+                
+                const row = document.createElement('div');
+                row.className = 'movies-row';
+                
+                // Mostrar hasta 20 películas por género
+                movies.slice(0, 20).forEach(movie => {
+                    const movieCard = document.createElement('div');
+                    movieCard.className = 'movie-card';
+                    movieCard.innerHTML = `
+                        <img class="movie-poster" src="${movie.post}" alt="${movie.titulo}">
+                        <div class="movie-info">
+                            <h3 class="movie-title">${movie.titulo}</h3>
+                            <div class="movie-meta">
+                                <span>${movie.año}</span>
+                                <span>${movie.duracion}</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    movieCard.addEventListener('click', () => openMovieModal(movie));
+                    row.appendChild(movieCard);
+                });
+                
+                section.appendChild(title);
+                section.appendChild(row);
+                genresContainer.appendChild(section);
+            }
+
+            // Función para buscar películas
+            async function searchMovies(query) {
+                isLoading = true;
+                loadingElement.style.display = 'flex';
+                genresContainer.innerHTML = '';
+                
+                try {
+                    const response = await fetch(`https://anusdbs.onrender.com/movies?api-key=5404383ab&search=titulo=${encodeURIComponent(query)}`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.data.length > 0) {
+                        createGenreSection(`Resultados para: ${query}`, data.data);
+                    } else {
+                        genresContainer.innerHTML = '<p>No se encontraron películas</p>';
+                    }
+                } catch (error) {
+                    console.error('Error al buscar películas:', error);
+                    genresContainer.innerHTML = '<p>Error al buscar las películas</p>';
+                } finally {
+                    isLoading = false;
+                    loadingElement.style.display = 'none';
+                }
+            }
+
+            // Función para abrir el modal con los detalles de la película
+            function openMovieModal(movie) {
+                document.getElementById('modal-backdrop').src = movie.miniature || '';
+                document.getElementById('modal-poster').src = movie.post || '';
+                document.getElementById('modal-title').textContent = movie.titulo || 'Sin título';
+                document.getElementById('modal-year').textContent = movie.año || 'Año desconocido';
+                document.getElementById('modal-duration').textContent = movie.duracion || 'Duración desconocida';
+                document.getElementById('modal-description').textContent = movie.descripcion || 'Sin descripción disponible.';
+                
+                // Limpiar y cargar géneros
+                const genresContainer = document.getElementById('modal-genres');
+                genresContainer.innerHTML = '';
+                
+                if (movie.generos) {
+                    const genres = movie.generos.split(' - ');
+                    genres.forEach(genre => {
+                        const genreTag = document.createElement('span');
+                        genreTag.className = 'genre-tag';
+                        genreTag.textContent = genre;
+                        genresContainer.appendChild(genreTag);
+                    });
+                }
+                
+                // Limpiar y cargar reparto
+                const castContainer = document.getElementById('cast-list');
+                castContainer.innerHTML = '';
+                
+                if (movie.actores && movie.actores.length > 0) {
+                    movie.actores.slice(0, 10).forEach(actor => {
+                        const castMember = document.createElement('span');
+                        castMember.className = 'cast-member';
+                        castMember.textContent = actor;
+                        castContainer.appendChild(castMember);
+                    });
+                    
+                    if (movie.actores.length > 10) {
+                        const moreCast = document.createElement('span');
+                        moreCast.className = 'cast-member';
+                        moreCast.textContent = `+${movie.actores.length - 10} más`;
+                        castContainer.appendChild(moreCast);
+                    }
+                }
+                
+                // Limpiar y cargar servidores
+                const serverTabsContainer = document.getElementById('server-tabs');
+                const serverContentsContainer = document.getElementById('server-contents');
+                serverTabsContainer.innerHTML = '';
+                serverContentsContainer.innerHTML = '';
+                
+                if (movie.servidores && movie.servidores.length > 0) {
+                    // Agrupar servidores por idioma
+                    const serversByLanguage = {};
+                    movie.servidores.forEach(server => {
+                        if (!serversByLanguage[server.idioma]) {
+                            serversByLanguage[server.idioma] = [];
+                        }
+                        serversByLanguage[server.idioma].push(server);
+                    });
+                    
+                    // Crear pestañas y contenidos
+                    let firstTab = true;
+                    for (const [language, servers] of Object.entries(serversByLanguage)) {
+                        // Crear pestaña
+                        const tab = document.createElement('div');
+                        tab.className = `server-tab ${firstTab ? 'active' : ''}`;
+                        tab.textContent = language;
+                        tab.addEventListener('click', () => {
+                            // Remover clase active de todas las pestañas
+                            document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
+                            // Añadir clase active a la pestaña clickeada
+                            tab.classList.add('active');
+                            // Mostrar el contenido correspondiente
+                            document.querySelectorAll('.server-content').forEach(c => c.classList.remove('active'));
+                            document.getElementById(`server-content-${language}`).classList.add('active');
+                        });
+                        serverTabsContainer.appendChild(tab);
+                        
+                        // Crear contenido
+                        const content = document.createElement('div');
+                        content.className = `server-content ${firstTab ? 'active' : ''}`;
+                        content.id = `server-content-${language}`;
+                        
+                        servers.forEach(server => {
+                            const serverOption = document.createElement('div');
+                            serverOption.className = 'server-option';
+                            serverOption.innerHTML = `
+                                <div class="server-info">
+                                    <span class="server-name">${server.nombre}</span>
+                                    <div class="server-meta">
+                                        <span>${server.calidad}</span> • 
+                                        <span>${server.tipo}</span>
+                                    </div>
+                                </div>
+                                <button class="watch-btn" data-url="${server.url}">
+                                    <i class="material-icons">play_arrow</i> Ver
+                                </button>
+                            `;
+                            content.appendChild(serverOption);
+                        });
+                        
+                        serverContentsContainer.appendChild(content);
+                        firstTab = false;
+                    }
+                    
+                    // Añadir event listeners a los botones de ver
+                    document.querySelectorAll('.watch-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const url = e.currentTarget.getAttribute('data-url');
+                            if (url) {
+                                window.open(url, '_blank');
+                            }
+                        });
+                    });
+                }
+                
+                // Mostrar el modal
+                movieModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            }
+
+            // Event listeners
+            modalClose.addEventListener('click', () => {
+                movieModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            });
+
+            window.addEventListener('click', (e) => {
+                if (e.target === movieModal) {
+                    movieModal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+
+            searchBtn.addEventListener('click', () => {
+                const query = searchInput.value.trim();
+                if (query) {
+                    searchMovies(query);
+                } else {
+                    loadAllMovies();
+                }
+            });
+
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const query = searchInput.value.trim();
+                    if (query) {
+                        searchMovies(query);
+                    } else {
+                        loadAllMovies();
+                    }
+                }
+            });
+
+            // Cargar películas al inicio
+            loadAllMovies();
+        });
+    </script>
+</body>
+</html>
