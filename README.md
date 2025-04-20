@@ -1,4 +1,5 @@
 <img src="img/icon_filmsgapsplus.png" alt="FilmsGapsPlus Logo" width="35" height="35"/>
+
 # FilmsGapsPlus - Plataforma de Películas y Series Online
 
 FilmsGapsPlus es una plataforma de streaming que ofrece un catálogo completo de películas y series en alta calidad, con una interfaz intuitiva y experiencia de usuario optimizada.
