@@ -38,12 +38,16 @@ document.addEventListener('DOMContentLoaded', function() {
 	let allMovies = [];
 	let allSeries = [];
 	let featuredContent = null;
+	let searchResultsMovies = [];
+    let searchResultsSeries = [];
+    let isSearchActive = false;
 	let currentContentType = 'movies'; // 'movies' o 'series'
 
 	// Función para cargar contenido según el tipo
 	async function loadContent(type) {
 		currentContentType = type;
 		isLoading = true;
+		isSearchActive = false; // Resetear estado de búsqueda
 		// Ocultar todo excepto el loading al inicio
 		heroSection.style.display = 'none';
 		contentContainer.style.display = 'none';
@@ -210,7 +214,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <i class="fas fa-play"></i>
                                 </button>
                             </div>
-                            <div class="movie-quality">HD</div>
                             <div class="movie-type">${type === 'movies' ? 'PELÍCULA' : 'SERIE'}</div>
                         </div>
                         <div class="movie-info">
@@ -228,8 +231,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     `;
 
-			const contentArray = type === 'movies' ? allMovies : allSeries;
-			const realIndex = contentArray.findIndex(c => c.titulo === item.titulo && c.año === item.año);
+			card.addEventListener('click', () => {
+                let contentArray;
+                if (isSearchActive) {
+                    contentArray = type === 'movies' ? searchResultsMovies : searchResultsSeries;
+                } else {
+                    contentArray = type === 'movies' ? allMovies : allSeries;
+                }
+                const realIndex = contentArray.findIndex(c => c.titulo === item.titulo && c.año === item.año);
+                openContentModal(type, realIndex);
+            });
 			card.addEventListener('click', () => openContentModal(type, realIndex));
 			row.appendChild(card);
 		});
@@ -257,6 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	// Función para buscar contenido
 	async function searchContent(query) {
 		isLoading = true;
+		isSearchActive = true; // Activar modo búsqueda
 		loadingElement.style.display = 'flex';
 		contentContainer.innerHTML = '';
 		heroSection.style.display = 'none';
@@ -278,10 +290,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 			if (hasMovies || hasSeries) {
 				if (hasMovies) {
+					searchResultsMovies = dataMovies.data;
 					createGenreSection(`Películas para: "${query}"`, dataMovies.data, "fas fa-film", 'movies');
 				}
 
 				if (hasSeries) {
+					searchResultsSeries = dataSeries.data;
 					createGenreSection(`Series para: "${query}"`, dataSeries.data, "fas fa-tv", 'series');
 				}
 
@@ -325,16 +339,19 @@ document.addEventListener('DOMContentLoaded', function() {
 		navTabs.style.display = 'flex'; // Muestra las tabs (ajusta a tu CSS)
 		heroSection.style.display = 'block'; // Muestra el hero (si lo ocultaste)
 		searchInput.value = ''; // Limpia el campo de búsqueda
+		isSearchActive = false;
 	}
 
 	// Función para abrir el modal con los detalles del contenido
 	window.openContentModal = function(type, contentIndex) {
-		const content = type === 'movies' ? allMovies[contentIndex] : allSeries[contentIndex];
+		const content = isSearchActive
+            ? (type === 'movies' ? searchResultsMovies[contentIndex] : searchResultsSeries[contentIndex])
+            : (type === 'movies' ? allMovies[contentIndex] : allSeries[contentIndex]);
 		if (!content) return;
 
 		document.getElementById('modal-backdrop').src = content.miniature || content.post;
-		document.getElementById('modal-poster').src = content.post;
-		document.getElementById('modal-title').textContent = content.titulo || 'Sin título';
+        document.getElementById('modal-poster').src = content.post;
+        document.getElementById('modal-title').textContent = content.titulo || 'Sin título';
 		document.getElementById('modal-year').querySelector('span').textContent = content.año || 'Año desconocido';
 
 		if (content.duracion) {
@@ -619,10 +636,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	// Función para abrir el reproductor
 	function openPlayer(url, title) {
-		playerTitle.innerHTML = `<i class="fas fa-play-circle"></i> ${title || 'Reproduciendo'}`;
+		/* playerTitle.innerHTML = `<i class="fas fa-play-circle"></i> ${title || 'Reproduciendo'}`;
 		playerIframe.src = url;
 		playerContainer.style.display = 'block';
-		document.body.style.overflow = 'hidden';
+		document.body.style.overflow = 'hidden'; */
+		window.open(url, '_blank');
 	}
 
 	// Event listeners
