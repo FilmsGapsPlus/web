@@ -84,6 +84,11 @@ document.addEventListener('DOMContentLoaded', function() {
 			tabs.style.display = 'flex'; // o 'block' según tu CSS
 			heroSection.style.display = 'block';
 			contentContainer.style.display = 'block';
+			// Hacer scroll suave hasta arriba
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
 		}
 	}
 
