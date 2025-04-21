@@ -1,4 +1,4 @@
-<img src="img/icon_filmsgapsplus.png" alt="FilmsGapsPlus Logo" width="35" height="35"/>
+<img src="img/icon_filmsgapsplus.png" alt="FilmsGapsPlus" width="25" height="25"/>
 
 # FilmsGapsPlus - Plataforma de Películas y Series Online
 
