@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const playerIframe = document.getElementById("player-iframe")
   const playerClose = document.getElementById("player-close")
   const playerTitle = document.getElementById("player-title")
+  const feedbackBtn = document.getElementById("feedback-btn")
 
   // Encriptación de las URLs de la API en base64
   const apiUrlMoviesBase64 = "aHR0cHM6Ly9hbnVzZGJzLm9ucmVuZGVyLmNvbS9tb3ZpZXM/YXBpLWtleT01NDA0MzgzYWI="
@@ -916,6 +917,15 @@ document.addEventListener("DOMContentLoaded", () => {
       genresGrid.appendChild(genreCard)
     })
   }
+  
+  feedbackBtn.addEventListener('click', () => {
+     const email = document.querySelector('.newsletter-input').value.trim();
+     if (email) {
+       window.location.href = `mailto:filmsgapsplusdevelopers@gmail.com?subject=Feedback%20FilmsGapsPlus&body=Mi%20correo:%20${email}%0A%0AMi%20feedback:%20`;
+     } else {
+       window.open('mailto:filmsgapsplusdevelopers@gmail.com?subject=Feedback%20FilmsGapsPlus', '_blank');
+     }
+   })
 
   // Event listeners para los modales
   genresLink.addEventListener("click", (e) => {
