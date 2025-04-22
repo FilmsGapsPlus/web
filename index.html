@@ -39,26 +39,29 @@
 				</button>
 			</div>
 		</header>
-		<div class="loading" id="loading">
-			<div class="spinner"></div>
-			<span>Cargando contenido...</span>
-		</div>
 		<main>
 			<div class="hero-section" id="hero-section">
 				<!-- El contenido del héroe se cargará dinámicamente -->
 			</div>
-			<div class="nav-tabs" id="tabs">
+				<div class="nav-tabs" id="tabs">
 				<div class="nav-tab active" data-content="movies">
 					<i class="fas fa-film"></i> Películas
 				</div>
 				<div class="nav-tab" data-content="series">
 					<i class="fas fa-tv"></i> Series
 				</div>
+				<div class="nav-tab" data-content="all">
+					<i class="fas fa-th-large"></i> Todo
+				</div>
 			</div>
 			<div id="content-container">
 				<!-- El contenido de películas o series se cargará aquí -->
 			</div>
 		</main>
+		<div class="loading" id="loading">
+			<div class="spinner"></div>
+			<span>Cargando contenido...</span>
+		</div>
 		<!-- Modal de detalles de película -->
 		<div class="modal" id="movie-modal">
 			<div class="modal-content">
