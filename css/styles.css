@@ -939,7 +939,7 @@ footer {
         text-decoration: none;
         font-size: 1.5rem;
         font-weight: 700;
-        margin-bottom: 1rem;
+        margin-bottom: 0rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
