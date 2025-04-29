@@ -2,7 +2,8 @@
   "version": "1.0",
   "update": "1.0",
   "download": "null",
-  "maintenance": "0"
-  "api-url": "https://anusdbs.onrender.com"
+  "maintenance": "0",
+  "maintenance_text": "auto",
+  "api-url": "https://anusdbs.onrender.com",
   "api-key": "5404383ab"
 }
