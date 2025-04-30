@@ -40,13 +40,19 @@ No se requiere instalación. La plataforma está disponible directamente en:
 
 🔗 [https://filmsgapsplus.github.io/web](https://filmsgapsplus.github.io/web)
 
-## Contacto
+## Contacto y redes sociales
 
 Para soporte técnico, reporte de errores o sugerencias:
 
-✉️ filmsgapsplusdevelopers@gmail.com
+✉️ [Email](mailto:filmsgapsplusdevelopers@gmail.com)
 📱 [Telegram](https://t.me/FilmsGapsPlusSoporte)
-🎵 [TikTok](https://www.tiktok.com/@filmsgapsplus)
+🎵 [TikTok](https://www.tiktok.com/@filmsgapsplus_lite)
+📷 [Instagram](https://www.instagram.com/filmsgapsplus)
+📹 [YouTube](https://youtube.com/@filmsgapsplusdeveloper)
+
+## Donaciones
+
+❤️ [PayPal](https://www.paypal.com/donate/?hosted_button_id=PGFHSUNXYZPDJ)
 
 ---
 
