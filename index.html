@@ -1,237 +1,253 @@
 <!DOCTYPE html>
 <html lang="es">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>FilmsGapsPlus - Películas y Series Online</title>
-		<link rel="icon" href="img/icon_filmsgapsplus.png" type="image/png">
-		<meta name="description" content="FilmsGapsPlus: Disfruta de películas y series online con una experiencia fluida y segura.">
-		<meta name="keywords" content="FilmsGapsPlus, películas online, series online, streaming, entretenimiento, Cuevana, PelisPlus, Repelis, SeriesDanko">
-		<meta name="author" content="FilmsGapsPlus">
-		<meta property="og:title" content="FilmsGapsPlus - Películas y Series Online">
-		<meta property="og:description" content="Explora FilmsGapsPlus y sumérgete en una experiencia de entretenimiento sin igual con películas y series online.">
-		<meta property="og:image" content="img/icon_filmsgapsplus.png">
-		<meta property="og:url" content="https://filmsgapsplus.github.io/web">
-		<meta property="og:type" content="website">
-		<meta name="robots" content="index, follow">
-		<meta name="theme-color" content="#070707">
-		<!-- Para iOS Safari -->
-		<meta name="apple-mobile-web-app-capable" content="yes">
-		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-		<link rel="canonical" href="https://filmsgapsplus.github.io/web">
-		<!-- Enlaces adicionales -->
-		<meta name="download_url" content="https://filmsgapsplus.github.io/home">
-		<meta property="og:download" content="https://filmsgapsplus.github.io/home">
-		<meta property="og:site_name" content="FilmsGapsPlus">
-		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-		<link rel="stylesheet" href="css/styles.css">
-	</head>
-	<body>
-		<header>
-			<div class="logo">FilmsGaps <span>Plus</span>
-			</div>
-			<div class="search-container">
-				<input type="text" id="search-input" placeholder="Buscar películas o series...">
-				<button id="search-btn">
-					<i class="material-icons">search</i>
-				</button>
-			</div>
-		</header>
-		<main>
-			<div class="hero-section" id="hero-section">
-				<!-- El contenido del héroe se cargará dinámicamente -->
-			</div>
-				<div class="nav-tabs" id="tabs">
-				<div class="nav-tab active" data-content="movies">
-					<i class="fas fa-film"></i> Películas
-				</div>
-				<div class="nav-tab" data-content="series">
-					<i class="fas fa-tv"></i> Series
-				</div>
-				<div class="nav-tab" data-content="all">
-					<i class="fas fa-th-large"></i> Todo
-				</div>
-			</div>
-			<div id="content-container">
-				<!-- El contenido de películas o series se cargará aquí -->
-			</div>
-		</main>
-		<div class="loading" id="loading">
-			<div class="spinner"></div>
-			<span>Cargando contenido...</span>
-		</div>
-		<!-- Modal de detalles de película -->
-		<div class="modal" id="movie-modal">
-			<div class="modal-content">
-				<div class="modal-header">
-					<img class="modal-backdrop" id="modal-backdrop" src="/placeholder.svg" alt="Backdrop">
-					<img class="modal-poster" id="modal-poster" src="/placeholder.svg" alt="Poster">
-					<button class="modal-close" id="modal-close">
-						<i class="fas fa-times"></i>
-					</button>
-				</div>
-				<div class="modal-body">
-					<h1 class="modal-title" id="modal-title"></h1>
-					<div class="modal-meta">
-						<span id="modal-year">
-							<i class="far fa-calendar-alt"></i>
-							<span></span>
-						</span>
-						<span id="modal-duration">
-							<i class="far fa-clock"></i>
-							<span></span>
-						</span>
-						<span id="modal-rating">
-							<i class="fas fa-star"></i>
-							<span></span>
-						</span>
-						<span id="modal-type">
-							<i class="fas fa-tag"></i>
-							<span></span>
-						</span>
-					</div>
-					<div class="modal-genres" id="modal-genres">
-						<!-- Los géneros se cargarán aquí -->
-					</div>
-					<p class="modal-description" id="modal-description"></p>
-					<div class="modal-cast">
-						<h3 class="cast-title">
-							<i class="fas fa-users"></i> Reparto
-						</h3>
-						<div class="cast-list" id="cast-list">
-							<!-- El reparto se cargarán aquí -->
-						</div>
-					</div>
-					<div id="movie-servers-section" class="servers-section">
-						<h3 class="servers-title">
-							<i class="fas fa-server"></i> Opciones de reproducción
-						</h3>
-						<div class="server-tabs" id="server-tabs">
-							<!-- Las pestañas de servidores se cargarán aquí -->
-						</div>
-						<div id="server-contents">
-							<!-- Los contenidos de servidores se cargarán aquí -->
-						</div>
-					</div>
-					<div id="series-seasons-section" class="seasons-section" style="display: none;">
-						<h3 class="seasons-title">
-							<i class="fas fa-layer-group"></i> Temporadas
-						</h3>
-						<div class="seasons-tabs" id="seasons-tabs">
-							<!-- Las pestañas de temporadas se cargarán aquí -->
-						</div>
-						<div id="seasons-contents">
-							<!-- Los contenidos de temporadas se cargarán aquí -->
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-		<!-- Reproductor de video -->
-		<div class="player-container" id="player-container">
-			<div class="player-content">
-				<div class="player-header">
-					<div class="player-title" id="player-title">
-						<i class="fas fa-play-circle"></i> Reproduciendo
-					</div>
-					<button class="player-close" id="player-close">
-						<i class="fas fa-times"></i>
-					</button>
-				</div>
-				<iframe id="player-iframe" class="player-iframe" allowfullscreen></iframe>
-			</div>
-		</div>
-		<footer>
-			<div class="footer-content">
-				<div>
-					<div class="logo2">FilmsGaps <span>Plus</span>
-					</div>
-					<p class="footer-description"> Disfruta de las mejores películas y series online en alta calidad. FilmsGapsPlus te ofrece el mejor catálogo de entretenimiento sin costo. </p>
-					<div class="footer-social">
-						<a href="https://www.tiktok.com/@filmsgapsplus" class="social-icon">
-							<i class="fab fa-tiktok"></i>
-						</a>
-						<a href="https://www.paypal.com/donate/?hosted_button_id=PGFHSUNXYZPDJ" class="social-icon">
-							<i class="fab fa-paypal"></i>
-						</a>
-						<a href="https://t.me/FilmsGapsPlusSoporte" class="social-icon">
-							<i class="fab fa-telegram"></i>
-						</a>
-					</div>
-				</div>
-				<div>
-					<h3 class="footer-title">Enlaces rápidos</h3>
-					<ul class="footer-links">
-						<li>
-							<a href="#">
-								<i class="fas fa-chevron-right"></i> Inicio </a>
-						</li>
-						<li>
-							<a href="#">
-								<i class="fas fa-chevron-right"></i> Películas </a>
-						</li>
-						<li>
-							<a href="#">
-								<i class="fas fa-chevron-right"></i> Series </a>
-						</li>
-						<li>
-							<a href="#">
-								<i class="fas fa-chevron-right"></i> Estrenos </a>
-						</li>
-						<li>
-							<a href="#" id="genres-link">
-								<i class="fas fa-chevron-right"></i> Géneros </a>
-						</li>
-					</ul>
-				</div>
-				<div>
-					<h3 class="footer-title">Términos</h3>
-					<ul class="footer-links">
-						<li>
-							<a href="terminos.html">
-								<i class="fas fa-file-alt"></i> Términos y condiciones </a>
-						</li>
-						<li>
-							<a href="privacidad.html" id="privacy-link">
-								<i class="fas fa-shield-alt"></i> Política de privacidad </a>
-						</li>
-					</ul>
-				</div>
-				<div>
-					<h3 class="footer-title">Feedback</h3>
-					<p>Envíanos tus comentarios y sugerencias para mejorar nuestra plataforma.</p>
-					<br>
-					<div class="newsletter-form">
-						<input type="email" class="newsletter-input" placeholder="Tu correo electrónico">
-						<button class="newsletter-btn" id="feedback-btn">
-							<i class="fas fa-paper-plane"></i>
-						</button>
-					</div>
-					<p class="footer-small-text">O escríbenos directamente a: <br>filmsgapsplusdevelopers@gmail.com </p>
-				</div>
-			</div>
-			<div class="footer-bottom">
-				<p>Todos los derechos reservados.</p>
-			</div>
-		</footer>
-		<!-- Modal de géneros -->
-		<div class="modal" id="genres-modal">
-			<div class="modal-content" style="max-width: 800px;">
-				<div class="modal-header" style="height: auto; padding: 1rem;">
-					<h2 class="modal-title">Géneros disponibles</h2>
-					<button class="modal-close" id="genres-modal-close">
-						<i class="fas fa-times"></i>
-					</button>
-				</div>
-				<div class="modal-body" style="padding: 2rem;">
-					<div class="genres-grid">
-						<!-- Los géneros se cargarán aquí -->
-					</div>
-				</div>
-			</div>
-		</div>
-		<script src="js/main.js"></script>
-	</body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FilmsGapsPlus - Películas y Series Online</title>
+    <link rel="icon" href="img/icon_filmsgapsplus.png" type="image/png">
+    <meta name="description" content="FilmsGapsPlus: Disfruta de películas y series online con una experiencia fluida y segura.">
+    <meta name="keywords" content="FilmsGapsPlus, películas online, series online, streaming, entretenimiento, Cuevana, PelisPlus, Repelis, SeriesDanko">
+    <meta name="author" content="FilmsGapsPlus">
+    <meta property="og:title" content="FilmsGapsPlus - Películas y Series Online">
+    <meta property="og:description" content="Explora FilmsGapsPlus y sumérgete en una experiencia de entretenimiento sin igual con películas y series online.">
+    <meta property="og:image" content="img/icon_filmsgapsplus.png">
+    <meta property="og:url" content="https://filmsgapsplus.github.io/web">
+    <meta property="og:type" content="website">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#070707">
+    <!-- Para iOS Safari -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="canonical" href="https://filmsgapsplus.github.io/web">
+    <!-- Enlaces adicionales -->
+    <meta name="download_url" content="https://filmsgapsplus.github.io/home">
+    <meta property="og:download" content="https://filmsgapsplus.github.io/home">
+    <meta property="og:site_name" content="FilmsGapsPlus">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            FilmsGaps <span>Plus</span>
+        </div>
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Buscar películas o series...">
+            <button id="search-btn">
+                <i class="material-icons">search</i>
+            </button>
+        </div>
+    </header>
+    <main>
+        <div class="hero-section" id="hero-section">
+            <!-- El contenido del héroe se cargará dinámicamente -->
+        </div>
+        <div class="nav-tabs" id="tabs">
+            <div class="nav-tab active" data-content="movies">
+                <i class="fas fa-film"></i> Películas
+            </div>
+            <div class="nav-tab" data-content="series">
+                <i class="fas fa-tv"></i> Series
+            </div>
+            <div class="nav-tab" data-content="all">
+                <i class="fas fa-th-large"></i> Todo
+            </div>
+        </div>
+        <div id="content-container">
+            <!-- El contenido de películas o series se cargará aquí -->
+        </div>
+    </main>
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <span>Cargando contenido...</span>
+    </div>
+    <!-- Modal de detalles de película -->
+    <div class="modal" id="movie-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <img class="modal-backdrop" id="modal-backdrop" src="/placeholder.svg" alt="Backdrop">
+                <img class="modal-poster" id="modal-poster" src="/placeholder.svg" alt="Poster">
+                <button class="modal-close" id="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <h1 class="modal-title" id="modal-title"></h1>
+                <div class="modal-meta">
+                    <span id="modal-year">
+                        <i class="far fa-calendar-alt"></i>
+                        <span></span>
+                    </span>
+                    <span id="modal-duration">
+                        <i class="far fa-clock"></i>
+                        <span></span>
+                    </span>
+                    <span id="modal-rating">
+                        <i class="fas fa-star"></i>
+                        <span></span>
+                    </span>
+                    <span id="modal-type">
+                        <i class="fas fa-tag"></i>
+                        <span></span>
+                    </span>
+                </div>
+                <div class="modal-genres" id="modal-genres">
+                    <!-- Los géneros se cargarán aquí -->
+                </div>
+                <p class="modal-description" id="modal-description"></p>
+                <div class="modal-cast">
+                    <h3 class="cast-title">
+                        <i class="fas fa-users"></i> Reparto
+                    </h3>
+                    <div class="cast-list" id="cast-list">
+                        <!-- El reparto se cargarán aquí -->
+                    </div>
+                </div>
+                <div id="movie-servers-section" class="servers-section">
+                    <h3 class="servers-title">
+                        <i class="fas fa-server"></i> Opciones de reproducción
+                    </h3>
+                    <div class="server-tabs" id="server-tabs">
+                        <!-- Las pestañas de servidores se cargarán aquí -->
+                    </div>
+                    <div id="server-contents">
+                        <!-- Los contenidos de servidores se cargarán aquí -->
+                    </div>
+                </div>
+                <div id="series-seasons-section" class="seasons-section" style="display: none;">
+                    <h3 class="seasons-title">
+                        <i class="fas fa-layer-group"></i> Temporadas
+                    </h3>
+                    <div class="seasons-tabs" id="seasons-tabs">
+                        <!-- Las pestañas de temporadas se cargarán aquí -->
+                    </div>
+                    <div id="seasons-contents">
+                        <!-- Los contenidos de temporadas se cargarán aquí -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Reproductor de video -->
+    <div class="player-container" id="player-container">
+        <div class="player-content">
+            <div class="player-header">
+                <div class="player-title" id="player-title">
+                    <i class="fas fa-play-circle"></i> Reproduciendo
+                </div>
+                <button class="player-close" id="player-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <iframe id="player-iframe" class="player-iframe" allowfullscreen></iframe>
+        </div>
+    </div>
+    <footer>
+        <div class="footer-content">
+            <div>
+                <div class="logo2">
+                    FilmsGaps <span>Plus</span>
+                </div>
+                <p class="footer-description">
+                    Disfruta de las mejores películas y series online en alta calidad. FilmsGapsPlus te ofrece el mejor catálogo de entretenimiento sin costo.
+                </p>
+                <div class="footer-social">
+                    <a href="https://www.tiktok.com/@filmsgapsplus_lite" class="social-icon">
+                        <i class="fab fa-tiktok"></i>
+                    </a>
+                    <a href="https://www.instagram.com/filmsgapsplus" class="social-icon">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="https://t.me/FilmsGapsPlusSoporte" class="social-icon">
+                        <i class="fab fa-telegram"></i>
+                    </a>
+                    <a href="https://youtube.com/@filmsgapsplusdeveloper" class="social-icon">
+                        <i class="fab fa-youtube"></i>
+                    </a>
+                    <a href="https://www.paypal.com/donate/?hosted_button_id=PGFHSUNXYZPDJ" class="social-icon">
+                        <i class="fab fa-paypal"></i>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <h3 class="footer-title">Enlaces rápidos</h3>
+                <ul class="footer-links">
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-chevron-right"></i> Inicio </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-chevron-right"></i> Películas </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-chevron-right"></i> Series </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-chevron-right"></i> Estrenos </a>
+                    </li>
+                    <li>
+                        <a href="#" id="genres-link">
+                            <i class="fas fa-chevron-right"></i> Géneros </a>
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="footer-title">Términos y privacidad</h3>
+                <ul class="footer-links">
+                    <li>
+                        <a href="terminos.html">
+                            <i class="fas fa-file-alt"></i> Términos y condiciones </a>
+                    </li>
+                    <li>
+                        <a href="privacidad.html" id="privacy-link">
+                            <i class="fas fa-shield-alt"></i> Política de privacidad </a>
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="footer-title">Feedback</h3>
+                <p>
+                    Envíanos tus comentarios y sugerencias para mejorar nuestra plataforma.
+                </p>
+                <br>
+                <div class="newsletter-form">
+                    <input type="email" class="newsletter-input" placeholder="Tu correo electrónico">
+                    <button class="newsletter-btn" id="feedback-btn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <p class="footer-small-text">
+                    O escríbenos directamente a: <br>filmsgapsplusdevelopers@gmail.com
+                </p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>
+                Todos los derechos reservados.
+            </p>
+        </div>
+    </footer>
+    <!-- Modal de géneros -->
+    <div class="modal" id="genres-modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header" style="height: auto; padding: 1rem;">
+                <h2 class="modal-title">Géneros disponibles</h2>
+                <button class="modal-close" id="genres-modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <div class="genres-grid">
+                    <!-- Los géneros se cargarán aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/main.js"></script>
+</body>
 </html>

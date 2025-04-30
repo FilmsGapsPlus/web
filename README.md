@@ -1,4 +1,4 @@
-<img src="img/icon_filmsgapsplus.png" alt="FilmsGapsPlus" width="35" height="35"/>
+<img src="img/icon_filmsgapsplus.png" alt="FilmsGapsPlus" width="35" height="35" />
 
 # FilmsGapsPlus - Plataforma de Películas y Series Online
 
@@ -44,8 +44,8 @@ No se requiere instalación. La plataforma está disponible directamente en:
 
 Para soporte técnico, reporte de errores o sugerencias:
 
-✉️ filmsgapsplusdevelopers@gmail.com  
-📱 [Telegram](https://t.me/FilmsGapsPlusSoporte)  
+✉️ filmsgapsplusdevelopers@gmail.com
+📱 [Telegram](https://t.me/FilmsGapsPlusSoporte)
 🎵 [TikTok](https://www.tiktok.com/@filmsgapsplus)
 
 ---
