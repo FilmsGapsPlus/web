@@ -4,6 +4,8 @@
 
 FilmsGapsPlus es una plataforma de streaming que ofrece un catálogo completo de películas y series en alta calidad, con una interfaz intuitiva y experiencia de usuario optimizada.
 
+---
+
 ## Características Principales
 
 - 🎬 **Catálogo extenso**: Miles de películas y series organizadas por géneros
@@ -12,12 +14,16 @@ FilmsGapsPlus es una plataforma de streaming que ofrece un catálogo completo de
 - 📱 **Diseño responsive**: Compatible con todos los dispositivos
 - 🔒 **Privacidad garantizada**: No recopilamos datos personales de los usuarios
 
+---
+
 ## Tecnologías Utilizadas
 
 - **Frontend**: HTML5, CSS3 (con variables CSS), JavaScript (ES6+)
 - **Fuentes**: Inter (Google Fonts), Font Awesome
 - **API**: Conexión con base de datos de películas/series
 - **Despliegue**: GitHub Pages
+
+---
 
 ## Estructura del Proyecto
 
@@ -34,25 +40,31 @@ FilmsGapsPlus/
 └── README.md               # Este archivo
 ```
 
+---
+
 ## Instalación y Uso
 
 No se requiere instalación. La plataforma está disponible directamente en:
 
-🔗 [https://filmsgapsplus.github.io/web](https://filmsgapsplus.github.io/web)
+- 🔗 [FilmsGapsPlus Web](https://filmsgapsplus.github.io/web)
+
+---
 
 ## Contacto y redes sociales
 
 Para soporte técnico, reporte de errores o sugerencias:
 
-✉️ [Email](mailto:filmsgapsplusdevelopers@gmail.com)
-📱 [Telegram](https://t.me/FilmsGapsPlusSoporte)
-🎵 [TikTok](https://www.tiktok.com/@filmsgapsplus_lite)
-📷 [Instagram](https://www.instagram.com/filmsgapsplus)
-📹 [YouTube](https://youtube.com/@filmsgapsplusdeveloper)
+- ✉️ [Email](mailto:filmsgapsplusdevelopers@gmail.com)
+- 📱 [Telegram](https://t.me/FilmsGapsPlusSoporte)
+- 🎵 [TikTok](https://www.tiktok.com/@filmsgapsplus_lite)
+- 📷 [Instagram](https://www.instagram.com/filmsgapsplus)
+- 📹 [YouTube](https://youtube.com/@filmsgapsplusdeveloper)
+
+---
 
 ## Donaciones
 
-❤️ [PayPal](https://www.paypal.com/donate/?hosted_button_id=PGFHSUNXYZPDJ)
+- ❤️ [PayPal](https://www.paypal.com/donate/?hosted_button_id=PGFHSUNXYZPDJ)
 
 ---
 
