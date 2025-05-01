@@ -4,7 +4,6 @@
 
 FilmsGapsPlus es una plataforma de streaming que ofrece un catálogo completo de películas y series en alta calidad, con una interfaz intuitiva y experiencia de usuario optimizada.
 
----
 
 ## Características Principales
 
@@ -14,7 +13,6 @@ FilmsGapsPlus es una plataforma de streaming que ofrece un catálogo completo de
 - 📱 **Diseño responsive**: Compatible con todos los dispositivos
 - 🔒 **Privacidad garantizada**: No recopilamos datos personales de los usuarios
 
----
 
 ## Tecnologías Utilizadas
 
@@ -22,8 +20,7 @@ FilmsGapsPlus es una plataforma de streaming que ofrece un catálogo completo de
 - **Fuentes**: Inter (Google Fonts), Font Awesome
 - **API**: Conexión con base de datos de películas/series
 - **Despliegue**: GitHub Pages
-
----
+- 
 
 ## Estructura del Proyecto
 
@@ -40,15 +37,12 @@ FilmsGapsPlus/
 └── README.md               # Este archivo
 ```
 
----
-
 ## Instalación y Uso
 
 No se requiere instalación. La plataforma está disponible directamente en:
 
 - 🔗 [FilmsGapsPlus Web](https://filmsgapsplus.github.io/web)
 
----
 
 ## Contacto y redes sociales
 
@@ -60,7 +54,6 @@ Para soporte técnico, reporte de errores o sugerencias:
 - 📷 [Instagram](https://www.instagram.com/filmsgapsplus)
 - 📹 [YouTube](https://youtube.com/@filmsgapsplusdeveloper)
 
----
 
 ## Donaciones
 
