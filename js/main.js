@@ -323,7 +323,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <i class="fas fa-play"></i>
             </button>
             </div>
-            <div class="movie-type">${contentType === "movies" ? "PELÍCULA": "SERIE"}</div>
+            <div class="movie-type">${contentType === "movies" ? "Movie": "Serie"}</div>
             </div>
             <div class="movie-info">
             <h3 class="movie-title">${item.titulo}</h3>
