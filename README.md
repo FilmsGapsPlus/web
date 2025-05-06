@@ -48,6 +48,7 @@ No se requiere instalación. La plataforma está disponible directamente en:
 
 Para soporte técnico, reporte de errores o sugerencias:
 
+- 💬 [WhatsApp](https://whatsapp.com/channel/0029VbAfyNl89innSGcUbI2F)
 - 📷 [Instagram](https://www.instagram.com/filmsgapsplus)
 - 📱 [Telegram](https://t.me/FilmsGapsPlusSoporte)
 - 📌 [Pinterest](https://es.pinterest.com/filmsgapsplus/)
