@@ -48,11 +48,16 @@ No se requiere instalación. La plataforma está disponible directamente en:
 
 Para soporte técnico, reporte de errores o sugerencias:
 
-- ✉️ [Email](mailto:filmsgapsplusdevelopers@gmail.com)
-- 📱 [Telegram](https://t.me/FilmsGapsPlusSoporte)
-- 🎵 [TikTok](https://www.tiktok.com/@filmsgapsplus_lite)
 - 📷 [Instagram](https://www.instagram.com/filmsgapsplus)
+- 📱 [Telegram](https://t.me/FilmsGapsPlusSoporte)
+- 📌 [Pinterest](https://es.pinterest.com/filmsgapsplus/)
 - 📹 [YouTube](https://youtube.com/@filmsgapsplusdeveloper)
+- ☁️ [BlueSky](https://bsky.app/profile/filmsgapsplus.bsky.social)
+- 🧵 [Threads](https://threads.net/@filmsgapsplus)
+- 💻 [GitHub](https://github.com/FilmsGapsPlus/web)
+- 🎵 [TikTok](https://www.tiktok.com/@filmsgapsplus_lite)
+- ✉️ [Email](mailto:filmsgapsplusdevelopers@gmail.com)
+- ✖️ [X](https://x.com/FilmsGapsPlus)
 
 
 ## Donaciones
