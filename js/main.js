@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const countriesSearch = document.getElementById("countries-search")
 
   // URLs de la API reconstruidas con un solo dominio
-  const apiBaseUrl = "https://anusdbs.onrender.com"
+  const apiBaseUrl = "https://anusdbs.onrender.com/api"
   const apiUrlMovies = `${apiBaseUrl}/movies`
   const apiUrlSeries = `${apiBaseUrl}/series`
   const apiUrlChannels = `${apiBaseUrl}/channels`
