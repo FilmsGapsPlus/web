@@ -29,17 +29,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const countriesGridModal = document.getElementById("countries-grid-modal")
   const countriesSearch = document.getElementById("countries-search")
 
-  // Encriptación de las URLs de la API en base64
-  const apiUrlMoviesBase64 = "aHR0cHM6Ly9hbnVzZGJzLm9ucmVuZGVyLmNvbS9tb3ZpZXM/YXBpLWtleT01NDA0MzgzYWI="
-  const apiUrlSeriesBase64 = "aHR0cHM6Ly9hbnVzZGJzLm9ucmVuZGVyLmNvbS9zZXJpZXMvP2FwaS1rZXk9NTQwNDM4M2Fi"
-
-  const apiUrlChannels = "https://anusdbs.onrender.com/channels/?api-key=5404383ab"
-  const apiUrlChannelsByIso = "https://anusdbs.onrender.com/channels/iso/"
+  // URLs de la API reconstruidas con un solo dominio
+  const apiBaseUrl = "https://anusdbs.onrender.com"
+  const apiUrlMovies = `${apiBaseUrl}/movies`
+  const apiUrlSeries = `${apiBaseUrl}/series`
+  const apiUrlChannels = `${apiBaseUrl}/channels`
+  const apiUrlChannelsByIso = `${apiBaseUrl}/channels/iso`
   const apiUrlIpCountry = "https://api.ipaddress.com/iptocountry?format=json"
 
-  // Función para decodificar las URLs de la API
+  // Función para obtener URLs de la API
   function getApiUrl(type) {
-    return type === "movies" ? atob(apiUrlMoviesBase64) : atob(apiUrlSeriesBase64)
+    return type === "movies" ? apiUrlMovies : apiUrlSeries
   }
 
   // Lista de géneros disponibles
@@ -111,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Si es la primera vez que cargamos películas o series, hacemos la petición
         if (type === "movies" && allMovies.length === 0) {
           const apiUrl = getApiUrl("movies")
-          const response = await fetch(`${apiUrl}&limit=1000&random`)
+          const response = await fetch(`${apiUrl}?limit=1000&random=true`)
           const data = await response.json()
           if (data.success && data.data.length > 0) {
             allMovies = data.data
@@ -120,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (type === "series" && allSeries.length === 0) {
           const apiUrl = getApiUrl("series")
-          const response = await fetch(`${apiUrl}&limit=1000&random`)
+          const response = await fetch(`${apiUrl}?limit=1000&random=true`)
           const data = await response.json()
           if (data.success && data.data.length > 0) {
             allSeries = data.data
@@ -201,7 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadChannelsByCountry(iso) {
     try {
-      const response = await fetch(`${apiUrlChannelsByIso}${iso}?api-key=5404383ab`)
+      const response = await fetch(`${apiUrlChannelsByIso}/${iso}`)
       const data = await response.json()
       if (data.success && data.servidores) {
         currentCountryChannels = data.servidores
@@ -725,11 +725,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const apiUrlMovies = getApiUrl("movies")
-      const responseMovies = await fetch(`${apiUrlMovies}&search=titulo=${encodeURIComponent(query)}`)
+      const responseMovies = await fetch(`${apiUrlMovies}?search=titulo=${encodeURIComponent(query)}`)
       const dataMovies = await responseMovies.json()
 
       const apiUrlSeries = getApiUrl("series")
-      const responseSeries = await fetch(`${apiUrlSeries}&search=titulo=${encodeURIComponent(query)}`)
+      const responseSeries = await fetch(`${apiUrlSeries}?search=titulo=${encodeURIComponent(query)}`)
       const dataSeries = await responseSeries.json()
 
       const hasMovies = dataMovies.success && dataMovies.data.length > 0
