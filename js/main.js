@@ -30,12 +30,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const countriesSearch = document.getElementById("countries-search")
 
   // URLs de la API reconstruidas con un solo dominio
-  const apiBaseUrl = "https://anusdbs.onrender.com/api"
-  const apiUrlMovies = `${apiBaseUrl}/movies`
-  const apiUrlSeries = `${apiBaseUrl}/series`
-  const apiUrlChannels = `${apiBaseUrl}/channels`
-  const apiUrlChannelsByIso = `${apiBaseUrl}/channels/iso`
-  const apiUrlIpCountry = "https://api.ipaddress.com/iptocountry?format=json"
+  const apiBaseUrl = "https://anusdbs.onrender.com"
+  const apiUrlMovies = `${apiBaseUrl}/api/movies`
+  const apiUrlSeries = `${apiBaseUrl}/api/series`
+  const apiUrlChannels = `${apiBaseUrl}/api/channels`
+  const apiUrlChannelsByIso = `${apiBaseUrl}/api/channels/iso`
+  const apiUrlIpCountry = `${apiBaseUrl}/v2/api/iptocountry`
 
   // Función para obtener URLs de la API
   function getApiUrl(type) {
