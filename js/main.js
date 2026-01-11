@@ -35,8 +35,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const apiUrlSeries = `${apiBaseUrl}/api/series`
   const apiUrlChannels = `${apiBaseUrl}/api/channels`
   const apiUrlChannelsByIso = `${apiBaseUrl}/api/channels/iso`
-  const apiUrlIpCountry = `${apiBaseUrl}/v2/api/iptocountry`
-
+  const apiUrlIpCountry = "https://api.ipaddress.com/iptocountry?format=json"
+  
   // Función para obtener URLs de la API
   function getApiUrl(type) {
     return type === "movies" ? apiUrlMovies : apiUrlSeries
