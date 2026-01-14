@@ -34,11 +34,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const apiUrlMovies = `${apiBaseUrl}/api/movies`
     const apiUrlSeries = `${apiBaseUrl}/api/series`
     const apiUrlChannels = `${apiBaseUrl}/api/channels`
-    const apiUrlChannelsByIso = `${apiBaseUrl}/api/channels/iso`
-    const apiUrlIpCountry = `${apiBaseUrl}/v2/api/iptocountry`
+    const apiUrlChannelsByIso = `${apiBaseUrl}/api/channels/iso/`
+    const apiUrlIpCountry = "https://api.ipaddress.com/iptocountry?format=json"
 
-    // Configuración del caché (6 horas en milisegundos)
-    const CACHE_DURATION = 6 * 60 * 60 * 1000; // 6 horas
+    // Configuración del caché (24 horas en milisegundos)
+    const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 horas
     const CACHE_PREFIX = 'filmsgapsplus_';
 
     // Funciones para manejar el caché
@@ -46,20 +46,23 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const cacheKey = CACHE_PREFIX + key;
             const cachedData = localStorage.getItem(cacheKey);
-            
+
             if (!cachedData) return null;
-            
-            const { data, timestamp } = JSON.parse(cachedData);
-            
+
+            const {
+                data,
+                timestamp
+            } = JSON.parse(cachedData);
+
             // Verificar si el caché ha expirado
             if (Date.now() - timestamp > CACHE_DURATION) {
                 localStorage.removeItem(cacheKey);
                 return null;
             }
-            
+
             return data;
         } catch (error) {
-            console.error('Error reading from cache:', error);
+            // console.error('Error reading from cache:', error);
             return null;
         }
     }
@@ -73,17 +76,17 @@ document.addEventListener("DOMContentLoaded", () => {
             };
             localStorage.setItem(cacheKey, JSON.stringify(cacheData));
         } catch (error) {
-            console.error('Error saving to cache:', error);
+            // console.error('Error saving to cache:', error);
         }
     }
 
     function clearExpiredCache() {
         try {
             const keysToRemove = [];
-            
+
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                
+
                 if (key.startsWith(CACHE_PREFIX)) {
                     try {
                         const cachedData = JSON.parse(localStorage.getItem(key));
@@ -95,10 +98,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
             }
-            
+
             keysToRemove.forEach(key => localStorage.removeItem(key));
         } catch (error) {
-            console.error('Error clearing expired cache:', error);
+            // console.error('Error clearing expired cache:', error);
         }
     }
 
@@ -107,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Función para obtener URLs de la API
     function getApiUrl(type) {
-        return type === "movies" ? apiUrlMovies : apiUrlSeries;
+        return type === "movies" ? apiUrlMovies: apiUrlSeries;
     }
 
     // Lista de géneros disponibles
@@ -167,39 +170,39 @@ document.addEventListener("DOMContentLoaded", () => {
     // Función para realizar fetch con caché
     async function fetchWithCache(url, options = {}) {
         const cacheKey = `fetch_${url}_${JSON.stringify(options)}`;
-        
+
         // Intentar obtener del caché
         const cachedData = getFromCache(cacheKey);
         if (cachedData) {
-            console.log('Using cached data for:', url);
+            // console.log('Using cached data for:', url);
             return cachedData;
         }
-        
+
         // Si no hay en caché, hacer la petición
         try {
-            console.log('Fetching fresh data for:', url);
+            // console.log('Fetching fresh data for:', url);
             const response = await fetch(url, options);
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+
             const data = await response.json();
-            
+
             // Guardar en caché
             saveToCache(cacheKey, data);
-            
+
             return data;
         } catch (error) {
-            console.error('Fetch error:', error);
-            
+            // console.error('Fetch error:', error);
+
             // En caso de error, intentar usar datos cacheados aunque estén viejos
             const oldCachedData = getFromCache(cacheKey, true); // true para ignorar expiración
             if (oldCachedData) {
-                console.log('Using expired cached data due to fetch error');
+                // console.log('Using expired cached data due to fetch error');
                 return oldCachedData;
             }
-            
+
             throw error;
         }
     }
@@ -227,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 await organizeContentByGenre(type)
             }
         } catch (error) {
-            console.error(`Error al cargar contenido:`, error)
+            // console.error(`Error al cargar contenido:`, error)
             contentContainer.innerHTML = `<p>Error al cargar el contenido. Por favor, intenta de nuevo más tarde.</p>`
         } finally {
             isLoading = false
@@ -252,63 +255,91 @@ document.addEventListener("DOMContentLoaded", () => {
                 updateHeroSection(featuredContent, type)
             }
         } catch (error) {
-            console.error("Error cargando contenido destacado:", error)
+            // console.error("Error cargando contenido destacado:", error)
         }
     }
 
     async function loadChannelsSection() {
         try {
+            // console.log('=== INICIANDO loadChannelsSection ===');
+
             // Detectar país del usuario si no lo tenemos
             if (!userCountryIso) {
                 try {
-                    const ipData = await fetchWithCache(apiUrlIpCountry)
-                    userCountryIso = ipData.country_code.toLowerCase()
+                    // console.log('Detectando país del usuario...');
+                    const ipResponse = await fetch(apiUrlIpCountry);
+                    const ipData = await ipResponse.json();
+                    // console.log('Datos de IP:', ipData);
+                    userCountryIso = ipData.country_code.toLowerCase();
+                    // console.log('País detectado:', userCountryIso);
                 } catch (e) {
-                    console.error("Error detectando país:", e)
-                    userCountryIso = "us" // Default a US si falla
+                    // console.error("Error detectando país:", e);
+                    userCountryIso = "us"; // Default a US si falla
                 }
             }
 
             // Cargar lista de países si no la tenemos
             if (allCountries.length === 0) {
-                const countriesData = await fetchWithCache(apiUrlChannels)
+                // console.log('Cargando lista de países...');
+                // console.log('URL de países:', apiUrlChannels);
+                const countriesResponse = await fetch(apiUrlChannels);
+                const countriesData = await countriesResponse.json();
+                // console.log('Datos de países recibidos:', countriesData);
+
                 if (countriesData.success && countriesData.data.length > 0) {
-                    allCountries = countriesData.data[0].countries
+                    allCountries = countriesData.data[0].countries;
+                    // console.log('Países cargados:', allCountries.length);
+                    // console.log('Primer país:', allCountries[0]);
+                } else {
+                    // console.log('No se encontraron países o estructura incorrecta');
                 }
             }
 
             // Si no hay país seleccionado, usar el del usuario
             if (!currentCountryIso) {
-                // Verificar si el país del usuario está en la lista
-                const userCountryExists = allCountries.find((c) => c.iso === userCountryIso)
-                currentCountryIso = userCountryExists ? userCountryIso : allCountries[0]?.iso || "us"
+                // console.log('No hay país seleccionado, buscando:', userCountryIso);
+                const userCountryExists = allCountries.find((c) => c.iso === userCountryIso);
+                // console.log('¿País del usuario existe en la lista?', userCountryExists);
+
+                currentCountryIso = userCountryExists ? userCountryIso: allCountries[0]?.iso || "us";
+                // console.log('País seleccionado:', currentCountryIso);
             }
 
             // Cargar canales del país seleccionado
-            await loadChannelsByCountry(currentCountryIso)
+            // console.log('Cargando canales para país:', currentCountryIso);
+            await loadChannelsByCountry(currentCountryIso);
+            // console.log('Canales cargados:', currentCountryChannels.length);
 
             // Renderizar la interfaz de canales
-            renderChannelsUI()
+            // console.log('Renderizando UI...');
+            renderChannelsUI();
+
+            // console.log('=== FIN loadChannelsSection ===');
         } catch (error) {
-            console.error("Error cargando canales:", error)
-            contentContainer.innerHTML = `<p>Error al cargar los canales. Por favor, intenta de nuevo más tarde.</p>`
+            // console.error("Error cargando canales:", error);
+            contentContainer.innerHTML = `<p>Error al cargar los canales. Por favor, intenta de nuevo más tarde.</p>`;
         }
     }
 
     async function loadChannelsByCountry(iso) {
         try {
-            const data = await fetchWithCache(`${apiUrlChannelsByIso}/${iso}`)
-            if (data.success && data.servidores) {
-                currentCountryChannels = data.servidores
+            const response = await fetch(`${apiUrlChannelsByIso}${iso}`)
+            const data = await response.json()
+            // console.log('Datos recibidos para país', iso, ':', data) // Para depuración
+
+            if (data.success && data.data && data.data.servidores) {
+                currentCountryChannels = data.data.servidores
                 currentCountryIso = iso
+                // console.log('Canales cargados:', currentCountryChannels.length) // Para depuración
+            } else {
+                // console.log('Estructura de datos inesperada:', data)
+                currentCountryChannels = []
             }
         } catch (error) {
-            console.error("Error cargando canales del país:", error)
+            // console.error("Error cargando canales del país:", error)
             currentCountryChannels = []
         }
     }
-
-    // ... (el resto de las funciones renderChannelsUI, openCountriesModal, etc. se mantienen igual)
 
     function renderChannelsUI() {
         contentContainer.innerHTML = ""
@@ -388,7 +419,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </button>
                 </div>
                 <div class="channel-live-badge">EN VIVO</div>
-                ${channel.calidad ? `<div class="channel-quality">${channel.calidad}</div>` : ""}
+                ${channel.calidad ? `<div class="channel-quality">${channel.calidad}</div>`: ""}
                 </div>
                 <div class="channel-info">
                 <h3 class="channel-title">${channel.titulo}</h3>
@@ -451,8 +482,7 @@ document.addEventListener("DOMContentLoaded", () => {
         countriesGridModal.innerHTML = ""
 
         const filteredCountries = filter
-            ? allCountries.filter((c) => c.name.toLowerCase().includes(filter.toLowerCase()))
-            : allCountries
+        ? allCountries.filter((c) => c.name.toLowerCase().includes(filter.toLowerCase())): allCountries
 
         if (filteredCountries.length === 0) {
             countriesGridModal.innerHTML = `
@@ -466,7 +496,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         filteredCountries.forEach((country) => {
             const countryCard = document.createElement("div")
-            countryCard.className = `country-card-modal ${country.iso === currentCountryIso ? "active" : ""}`
+            countryCard.className = `country-card-modal ${country.iso === currentCountryIso ? "active": ""}`
             countryCard.innerHTML = `
             <span class="country-flag">${country.flag}</span>
             <div class="country-info">
@@ -535,7 +565,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Verificar soporte HLS
         if (Hls && Hls.isSupported()) {
-            hlsInstance = new Hls({
+            hlsInstance = new Hls( {
                 enableWorker: true,
                 lowLatencyMode: true,
                 backBufferLength: 90,
@@ -547,20 +577,20 @@ document.addEventListener("DOMContentLoaded", () => {
             hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
                 channelVideoLoading.style.display = "none"
                 channelVideo.play().catch((e) => {
-                    console.error("Error al reproducir:", e)
+                    // console.error("Error al reproducir:", e)
                 })
             })
 
             hlsInstance.on(Hls.Events.ERROR, (event, data) => {
-                console.error("Error HLS:", data)
+                // console.error("Error HLS:", data)
                 if (data.fatal) {
                     switch (data.type) {
                         case Hls.ErrorTypes.NETWORK_ERROR:
-                            console.error("Error de red, intentando recuperar...")
+                            // console.error("Error de red, intentando recuperar...")
                             hlsInstance.startLoad()
                             break
                         case Hls.ErrorTypes.MEDIA_ERROR:
-                            console.error("Error de media, intentando recuperar...")
+                            // console.error("Error de media, intentando recuperar...")
                             hlsInstance.recoverMediaError()
                             break
                         default:
@@ -624,10 +654,12 @@ document.addEventListener("DOMContentLoaded", () => {
         })
     }
 
+
     // Función para actualizar la sección hero
-    function updateHeroSection(content, type) {
+    function updateHeroSection(content,
+        type) {
         if (!content) return
-        
+
         heroSection.innerHTML = `
         <img class="hero-backdrop" src="${content.miniature || content.post}" alt="${content.titulo}">
         <div class="hero-overlay"></div>
@@ -635,9 +667,9 @@ document.addEventListener("DOMContentLoaded", () => {
         <h1 class="hero-title">${content.titulo}</h1>
         <div class="hero-meta">
         <span><i class="far fa-calendar-alt"></i> ${content.ano}</span>
-        ${content.duracion ? `<span><i class="far fa-clock"></i> ${content.duracion}</span>` : ""}
+        ${content.duracion ? `<span><i class="far fa-clock"></i> ${content.duracion}</span>`: ""}
         <span><i class="fas fa-star"></i> ${(Math.random() * 2 + 7).toFixed(1)}</span>
-        <span><i class="fas fa-tag"></i> ${type === "movies" ? "Película" : "Serie"}</span>
+        <span><i class="fas fa-tag"></i> ${type === "movies" ? "Película": "Serie"}</span>
         </div>
         <div class="hero-buttons">
         <button class="btn btn-red" onclick="window.openContentModalByContent('${type}', ${JSON.stringify(content).replace(/"/g, "&quot;")})">
@@ -655,72 +687,74 @@ document.addEventListener("DOMContentLoaded", () => {
         const shuffled = [...array]
         for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+            [shuffled[i],
+                shuffled[j]] = [shuffled[j],
+                shuffled[i]]
         }
         return shuffled
     }
 
-// Función para organizar contenido por género (carga progresiva)
-async function organizeContentByGenre(type) {
-    const apiUrl = getApiUrl(type)
+    // Función para organizar contenido por género (carga progresiva)
+    async function organizeContentByGenre(type) {
+        const apiUrl = getApiUrl(type)
 
-    // Cargar estrenos (año actual o anterior)
-    try {
-        const currentYear = new Date().getFullYear()
-        let releaseContent = []
+        // Cargar estrenos (año actual o anterior)
+        try {
+            const currentYear = new Date().getFullYear()
+            let releaseContent = []
 
-        // Intentar con año actual
-        const cacheKey = `releases_${type}_${currentYear}`
-        let currentYearData = getFromCache(cacheKey)
-        
-        if (!currentYearData) {
-            currentYearData = await fetchWithCache(`${apiUrl}?search=ano=${currentYear}&limit=20&random=true`)
-            saveToCache(cacheKey, currentYearData)
-        }
+            // Intentar con año actual
+            const cacheKey = `releases_${type}_${currentYear}`
+            let currentYearData = getFromCache(cacheKey)
 
-        if (currentYearData.success && currentYearData.data.length > 0) {
-            releaseContent = currentYearData.data
-        } else {
-            // Si no hay resultados, intentar con año anterior
-            const previousYear = currentYear - 1
-            const previousCacheKey = `releases_${type}_${previousYear}`
-            let previousYearData = getFromCache(previousCacheKey)
-            
-            if (!previousYearData) {
-                previousYearData = await fetchWithCache(`${apiUrl}?search=ano=${previousYear}&limit=20&random=true`)
-                saveToCache(previousCacheKey, previousYearData)
+            if (!currentYearData) {
+                currentYearData = await fetchWithCache(`${apiUrl}?search=ano=${currentYear}&limit=20&random=true`)
+                saveToCache(cacheKey, currentYearData)
             }
 
-            if (previousYearData.success && previousYearData.data.length > 0) {
-                releaseContent = previousYearData.data
+            if (currentYearData.success && currentYearData.data.length > 0) {
+                releaseContent = currentYearData.data
+            } else {
+                // Si no hay resultados, intentar con año anterior
+                const previousYear = currentYear - 1
+                const previousCacheKey = `releases_${type}_${previousYear}`
+                let previousYearData = getFromCache(previousCacheKey)
+
+                if (!previousYearData) {
+                    previousYearData = await fetchWithCache(`${apiUrl}?search=ano=${previousYear}&limit=20&random=true`)
+                    saveToCache(previousCacheKey, previousYearData)
+                }
+
+                if (previousYearData.success && previousYearData.data.length > 0) {
+                    releaseContent = previousYearData.data
+                }
             }
+
+            // Mostrar estrenos si se encontraron resultados
+            if (releaseContent.length > 0) {
+                const yearShown = releaseContent[0].ano || currentYear
+
+                // Ordenar aleatoriamente los estrenos
+                const shuffledReleases = shuffleArray(releaseContent)
+
+                createGenreSection(`Estrenos ${yearShown}`, shuffledReleases, "fas fa-fire", type)
+            }
+        } catch (error) {
+            // console.error("Error cargando estrenos:", error)
         }
 
-        // Mostrar estrenos si se encontraron resultados
-        if (releaseContent.length > 0) {
-            const yearShown = releaseContent[0].ano || currentYear
+        // Cargar los primeros 5 géneros inmediatamente
+        const initialGenres = allGenres.slice(0, 5)
+        const remainingGenres = allGenres.slice(5)
 
-            // Ordenar aleatoriamente los estrenos
-            const shuffledReleases = shuffleArray(releaseContent)
+        // Cargar primeros 5 géneros en paralelo
+        await Promise.all(initialGenres.map(genre => loadGenreContent(genre, type)))
 
-            createGenreSection(`Estrenos ${yearShown}`, shuffledReleases, "fas fa-fire", type)
+        // Cargar el resto de géneros de forma progresiva (uno por uno)
+        for (const genre of remainingGenres) {
+            loadGenreContent(genre, type) // Sin await para que no bloquee
         }
-    } catch (error) {
-        console.error("Error cargando estrenos:", error)
     }
-
-    // Cargar los primeros 5 géneros inmediatamente
-    const initialGenres = allGenres.slice(0, 5)
-    const remainingGenres = allGenres.slice(5)
-
-    // Cargar primeros 5 géneros en paralelo
-    await Promise.all(initialGenres.map(genre => loadGenreContent(genre, type)))
-
-    // Cargar el resto de géneros de forma progresiva (uno por uno)
-    for (const genre of remainingGenres) {
-        loadGenreContent(genre, type) // Sin await para que no bloquee
-    }
-}
 
     // Función para cargar contenido de un género específico
     async function loadGenreContent(genre, type) {
@@ -748,7 +782,7 @@ async function organizeContentByGenre(type) {
                 createGenreSection(genre, shuffledContent, getGenreIcon(genre), type)
             }
         } catch (error) {
-            console.error(`Error cargando género ${genre}:`, error)
+            // console.error(`Error cargando género ${genre}:`, error)
         }
     }
 
@@ -822,7 +856,7 @@ async function organizeContentByGenre(type) {
             <i class="fas fa-play"></i>
             </button>
             </div>
-            <div class="movie-type">${contentType === "movies" ? "PELÍCULA" : "SERIE"}</div>
+            <div class="movie-type">${contentType === "movies" ? "PELÍCULA": "SERIE"}</div>
             </div>
             <div class="movie-info">
             <h3 class="movie-title">${item.titulo}</h3>
@@ -941,7 +975,7 @@ async function organizeContentByGenre(type) {
                 `
             }
         } catch (error) {
-            console.error("Error al buscar contenido:", error)
+            // console.error("Error al buscar contenido:", error)
             contentContainer.innerHTML = "<p>Error al buscar el contenido</p>"
         } finally {
             isLoading = false
@@ -981,17 +1015,17 @@ async function organizeContentByGenre(type) {
         }
 
         document.getElementById("modal-rating").querySelector("span").textContent = (Math.random() * 2 + 7).toFixed(1)
-        document.getElementById("modal-type").querySelector("span").textContent = type === "movies" ? "Película" : "Serie"
+        document.getElementById("modal-type").querySelector("span").textContent = type === "movies" ? "Película": "Serie"
         document.getElementById("modal-description").textContent = content.descripcion || "Sin descripción disponible."
 
-        document.getElementById("movie-servers-section").style.display = type === "movies" ? "block" : "none"
-        document.getElementById("series-seasons-section").style.display = type === "series" ? "block" : "none"
+        document.getElementById("movie-servers-section").style.display = type === "movies" ? "block": "none"
+        document.getElementById("series-seasons-section").style.display = type === "series" ? "block": "none"
 
         const genresContainer = document.getElementById("modal-genres")
         genresContainer.innerHTML = ""
 
         if (content.generos) {
-            const genres = typeof content.generos === "string" ? content.generos.split(" - ") : content.generos
+            const genres = typeof content.generos === "string" ? content.generos.split(" - "): content.generos
             genres.forEach((genre) => {
                 const genreTag = document.createElement("span")
                 genreTag.className = "genre-tag"
@@ -1053,7 +1087,7 @@ async function organizeContentByGenre(type) {
             let firstTab = true
             for (const [language, servers] of Object.entries(serversByLanguage)) {
                 const tab = document.createElement("div")
-                tab.className = `server-tab ${firstTab ? "active" : ""}`
+                tab.className = `server-tab ${firstTab ? "active": ""}`
 
                 let langIcon = "fas fa-globe"
                 if (language.toLowerCase().includes("español") || language.toLowerCase().includes("latino")) {
@@ -1075,7 +1109,7 @@ async function organizeContentByGenre(type) {
                 serverTabsContainer.appendChild(tab)
 
                 const content = document.createElement("div")
-                content.className = `server-content ${firstTab ? "active" : ""}`
+                content.className = `server-content ${firstTab ? "active": ""}`
                 content.id = `server-content-${language.replace(/\s+/g, "-")}`
 
                 servers.forEach((server) => {
@@ -1135,7 +1169,7 @@ async function organizeContentByGenre(type) {
             let firstTab = true
             serie.temporadas.forEach((season) => {
                 const tab = document.createElement("div")
-                tab.className = `season-tab ${firstTab ? "active" : ""}`
+                tab.className = `season-tab ${firstTab ? "active": ""}`
                 tab.innerHTML = `<i class="fas fa-layer-group"></i> ${season.titulo}`
 
                 tab.addEventListener("click", () => {
@@ -1147,7 +1181,7 @@ async function organizeContentByGenre(type) {
                 seasonsTabsContainer.appendChild(tab)
 
                 const content = document.createElement("div")
-                content.className = `season-content ${firstTab ? "active" : ""}`
+                content.className = `season-content ${firstTab ? "active": ""}`
                 content.id = `season-content-${season.numero}`
 
                 const episodeList = document.createElement("div")
@@ -1247,20 +1281,8 @@ async function organizeContentByGenre(type) {
         }
     })
 
-    searchBtn.addEventListener("click", () => {
-        const query = searchInput.value.trim()
-        if (query) {
-            searchContent(query)
-        } else {
-            loadContent(currentContentType)
-            if (currentContentType !== "channels") {
-                heroSection.style.display = "block"
-            }
-        }
-    })
-
-    searchInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
+    searchBtn.addEventListener("click",
+        () => {
             const query = searchInput.value.trim()
             if (query) {
                 searchContent(query)
@@ -1270,8 +1292,22 @@ async function organizeContentByGenre(type) {
                     heroSection.style.display = "block"
                 }
             }
-        }
-    })
+        })
+
+    searchInput.addEventListener("keypress",
+        (e) => {
+            if (e.key === "Enter") {
+                const query = searchInput.value.trim()
+                if (query) {
+                    searchContent(query)
+                } else {
+                    loadContent(currentContentType)
+                    if (currentContentType !== "channels") {
+                        heroSection.style.display = "block"
+                    }
+                }
+            }
+        })
 
     // Event listeners para las pestañas de navegación
     navTabs.forEach((tab) => {
@@ -1325,7 +1361,7 @@ async function organizeContentByGenre(type) {
                     const apiUrl = getApiUrl(currentContentType)
                     const cacheKey = `genre_detail_${currentContentType}_${genre}`
                     let data = getFromCache(cacheKey)
-                    
+
                     if (!data) {
                         const response = await fetch(`${apiUrl}?search=generos=${encodeURIComponent(genre)}&limit=50`)
                         data = await response.json()
@@ -1363,7 +1399,7 @@ async function organizeContentByGenre(type) {
                         `
                     }
                 } catch (error) {
-                    console.error("Error cargando género:", error)
+                    // console.error("Error cargando género:", error)
                     loadingElement.style.display = "none"
                     contentContainer.innerHTML = `<p>Error al cargar el contenido del género.</p>`
                 }
