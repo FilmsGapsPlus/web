@@ -1,7 +1,10 @@
 {
-  "server_url": "https://dated-matching-storage-exposed.trycloudflare.com",
-  "last_updated": "2026-01-15T14:55:43.266Z",
-  "updated_by": "Cloudflared Auto Deploy",
+  "server_url": "https://tee-membrane-tsunami-obtain.trycloudflare.com",
+  "last_updated": "2026-01-15T15:56:41.400Z",
+  "updated_at": 1768492601418,
   "status": "active",
-  "timestamp": 1768488943266
+  "health": "online",
+  "local_health": "online",
+  "cloudflared_health": "online",
+  "retry_attempts": 0
 }
