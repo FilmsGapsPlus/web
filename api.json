@@ -1,10 +1,5 @@
 {
-  "server_url": "https://pastor-gadgets-strengthen-barnes.trycloudflare.com",
-  "last_updated": "2026-01-15T16:07:24.806Z",
-  "updated_at": 1768493244821,
-  "status": "active",
-  "health": "online",
-  "local_health": "online",
-  "cloudflared_health": "online",
-  "retry_attempts": 0
+  "server_url": "https://structural-euros-listen-infrastructure.trycloudflare.com",
+  "last_updated": "2026-01-15T16:12:57.276Z",
+  "status": "active"
 }
