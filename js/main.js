@@ -29,16 +29,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const countriesGridModal = document.getElementById("countries-grid-modal")
     const countriesSearch = document.getElementById("countries-search")
 
-    // URLs de la API reconstruidas con un solo dominio
-    const apiBaseUrl = "https://anusdbs.onrender.com"
-    const apiUrlMovies = `${apiBaseUrl}/api/movies`
-    const apiUrlSeries = `${apiBaseUrl}/api/series`
-    const apiUrlChannels = `${apiBaseUrl}/api/channels`
-    const apiUrlChannelsByIso = `${apiBaseUrl}/api/channels/iso/`
+    // URL base inicial
+    let apiBaseUrl = "https://anusdbs.onrender.com";
+
+    // Variables para las URLs de la API (se inicializarán después de obtener la URL base)
+    let apiUrlMovies = "";
+    let apiUrlSeries = "";
+    let apiUrlChannels = "";
+    let apiUrlChannelsByIso = "";
+
     const apiUrlIpCountry = "https://api.ipaddress.com/iptocountry?format=json"
 
     // Configuración del caché (24 horas en milisegundos)
-    const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 horas
+    const CACHE_DURATION = 72 * 60 * 60 * 1000; // 24 horas
     const CACHE_PREFIX = 'filmsgapsplus_';
 
     // Funciones para manejar el caché
@@ -107,6 +110,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Limpiar caché expirado al cargar la página
     clearExpiredCache();
+
+    // Función para inicializar las URLs de la API
+    function initializeApiUrls() {
+        apiUrlMovies = `${apiBaseUrl}/api/movies`;
+        apiUrlSeries = `${apiBaseUrl}/api/series`;
+        apiUrlChannels = `${apiBaseUrl}/api/channels`;
+        apiUrlChannelsByIso = `${apiBaseUrl}/api/channels/iso/`;
+        // console.log("URLs de API inicializadas con base:", apiBaseUrl);
+    }
 
     // Función para obtener URLs de la API
     function getApiUrl(type) {
@@ -204,6 +216,78 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             throw error;
+        }
+    }
+
+    // Función para verificar si una URL está disponible
+    async function checkUrlAvailability(url) {
+        try {
+            // Probamos con el favicon.ico que generalmente existe
+            const faviconUrl = `${url}/favicon.ico`;
+
+            // Usamos fetch con timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos timeout
+
+            const response = await fetch(faviconUrl, {
+                method: 'HEAD',
+                signal: controller.signal,
+                cache: 'no-cache'
+            });
+
+            clearTimeout(timeoutId);
+
+            // Si obtenemos una respuesta 2xx, la URL está disponible
+            return response.ok;
+        } catch (error) {
+            // console.log(`URL ${url} no disponible:`, error.message);
+            return false;
+        }
+    }
+
+    // Función principal para inicializar la aplicación
+    async function initializeApp() {
+        try {
+            // Mostrar loading mientras obtenemos la URL base
+            loadingElement.style.display = "flex";
+            heroSection.style.display = "none";
+            contentContainer.style.display = "none";
+            tabs.style.display = "none";
+
+            // Obtener la URL base del JSON remoto
+            const response = await fetch("https://filmsgapsplus.github.io/web/api.json");
+            const data = await response.json();
+
+            let remoteUrl = null;
+            if (data.server_url) {
+                remoteUrl = data.server_url;
+                // console.log("URL remota encontrada:", remoteUrl);
+
+                // Verificar si la URL remota está disponible
+                // console.log("Verificando disponibilidad de URL remota...");
+                const isRemoteAvailable = await checkUrlAvailability(remoteUrl);
+
+                if (isRemoteAvailable) {
+                    apiBaseUrl = remoteUrl;
+                    // console.log("URL remota disponible, usando:", apiBaseUrl);
+                } else {
+                    // console.warn("URL remota no disponible, usando localhost:", apiBaseUrl);
+                }
+            } else {
+                // console.warn("No se encontró server_url en el JSON, usando localhost.");
+            }
+
+            // Inicializar las URLs de la API con la base obtenida
+            initializeApiUrls();
+
+            // Cargar el contenido inicial
+            loadContent("movies");
+
+        } catch (err) {
+            // console.error("Error al obtener el JSON de la API:", err);
+            // Usar la URL por defecto si falla
+            initializeApiUrls();
+            loadContent("movies");
         }
     }
 
@@ -654,7 +738,6 @@ document.addEventListener("DOMContentLoaded", () => {
         })
     }
 
-
     // Función para actualizar la sección hero
     function updateHeroSection(content,
         type) {
@@ -744,8 +827,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         // Cargar los primeros 5 géneros inmediatamente
-        const initialGenres = allGenres.slice(0, 5)
-        const remainingGenres = allGenres.slice(5)
+        const initialGenres = allGenres.slice(0, 3)
+        const remainingGenres = allGenres.slice(3)
 
         // Cargar primeros 5 géneros en paralelo
         await Promise.all(initialGenres.map(genre => loadGenreContent(genre, type)))
@@ -931,10 +1014,7 @@ document.addEventListener("DOMContentLoaded", () => {
         tabs.style.display = "none"
 
         try {
-            const apiUrlMovies = getApiUrl("movies")
             const dataMovies = await fetchWithCache(`${apiUrlMovies}?search=titulo=${encodeURIComponent(query)}`)
-
-            const apiUrlSeries = getApiUrl("series")
             const dataSeries = await fetchWithCache(`${apiUrlSeries}?search=titulo=${encodeURIComponent(query)}`)
 
             const hasMovies = dataMovies.success && dataMovies.data.length > 0
@@ -1323,8 +1403,8 @@ document.addEventListener("DOMContentLoaded", () => {
         })
     })
 
-    // Cargar películas al inicio
-    loadContent("movies")
+    // Inicializar la aplicación
+    initializeApp();
 
     // Elementos para los modales adicionales
     const genresModal = document.getElementById("genres-modal")
