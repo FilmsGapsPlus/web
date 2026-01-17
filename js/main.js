@@ -255,7 +255,7 @@ document.addEventListener("DOMContentLoaded", () => {
             tabs.style.display = "none";
 
             // Obtener la URL base del JSON remoto
-            const response = await fetch("https://filmsgapsplus.github.io/web/api.json");
+            const response = await fetch("https://filmsgapsplus.github.io/web/cloudflared.json");
             const data = await response.json();
 
             let remoteUrl = null;
