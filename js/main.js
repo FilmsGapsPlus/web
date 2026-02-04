@@ -1308,7 +1308,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 serverBtn.innerHTML = `<i class="${serverIcon}"></i> ${server.nombre} - ${server.idioma}`
 
                                 serverBtn.addEventListener("click", () => {
-                                    window.open(server.shorter, "_blank")
+                                    window.open(server.shorter || server.url, "_blank");
                                 })
 
                                 episodeServers.appendChild(serverBtn)
