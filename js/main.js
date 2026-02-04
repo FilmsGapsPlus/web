@@ -1214,7 +1214,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <span><i class="fas fa-file-video"></i> ${server.tipo}</span>
                     </div>
                     </div>
-                    <button class="watch-btn" data-url="${server.url}" data-title="${movie.titulo}">
+                    <button class="watch-btn" data-url="${server.shorter}" data-title="${movie.titulo}">
                     <i class="fas fa-play"></i> Ver ahora
                     </button>
                     `
@@ -1308,7 +1308,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 serverBtn.innerHTML = `<i class="${serverIcon}"></i> ${server.nombre} - ${server.idioma}`
 
                                 serverBtn.addEventListener("click", () => {
-                                    window.open(server.url, "_blank")
+                                    window.open(server.shorter, "_blank")
                                 })
 
                                 episodeServers.appendChild(serverBtn)
