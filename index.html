@@ -1,15 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FilmsGapsPlus | Ver Películas, Series y TV Online en Vivo sin Anuncios</title>
     <link rel="icon" href="img/icon_filmsgapsplus.png" type="image/png">
-    <meta name="description"
-        content="Ver películas, series y canales de TV online en vivo sin anuncios. FilmsGapsPlus ofrece streaming rápido, estable y optimizado para móvil, PC y Smart TV, sin registros innecesarios.">
-    <meta name="keywords"
-        content="ver películas online, ver series online, tv online en vivo, canales de tv sin anuncios, streaming sin publicidad, películas HD online, series HD online, plataforma de streaming gratuita">
+    <meta name="description" content="Ver películas, series y canales de TV online en vivo sin anuncios. FilmsGapsPlus ofrece streaming rápido, estable y optimizado para móvil, PC y Smart TV, sin registros innecesarios.">
+    <meta name="keywords" content="ver películas online, ver series online, tv online en vivo, canales de tv sin anuncios, streaming sin publicidad, películas HD online, series HD online, plataforma de streaming gratuita">
     <meta name="author" content="FilmsGapsPlus">
     <meta name="robots" content="index, follow, max-image-preview:large">
     <link rel="canonical" href="https://filmsgapsplus.github.io/web">
@@ -19,16 +16,14 @@
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FilmsGapsPlus">
     <meta property="og:title" content="FilmsGapsPlus | Películas, Series y TV Online sin Anuncios">
-    <meta property="og:description"
-        content="Streaming de películas, series y TV online en vivo sin anuncios. Rápido, seguro y sin interrupciones.">
+    <meta property="og:description" content="Streaming de películas, series y TV online en vivo sin anuncios. Rápido, seguro y sin interrupciones.">
     <meta property="og:url" content="https://filmsgapsplus.github.io/web">
     <meta property="og:image" content="img/icon_filmsgapsplus.png">
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="FilmsGapsPlus | Streaming sin Anuncios">
-    <meta name="twitter:description"
-        content="Películas, series y TV online en vivo sin anuncios. Disfruta streaming estable y sin interrupciones.">
+    <meta name="twitter:description" content="Películas, series y TV online en vivo sin anuncios. Disfruta streaming estable y sin interrupciones.">
     <meta name="twitter:image" content="img/icon_filmsgapsplus.png">
 
     <!-- PWA / Apple -->
@@ -38,15 +33,13 @@
     <!-- Descarga -->
     <meta name="download_url" content="https://filmsgapsplus.github.io/home">
 
-    <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
     <!-- Agregado HLS.js para reproducir canales -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
-
 <body>
     <header>
         <div class="logo">
@@ -66,6 +59,7 @@
     <main>
         <div class="hero-section" id="hero-section"></div>
         <div class="nav-tabs" id="tabs">
+            <!-- Cambiado "Todo" por "Canales" -->
             <div class="nav-tab" data-content="channels">
                 <i class="fas fa-satellite-dish"></i> Canales
             </div>
@@ -78,82 +72,44 @@
         </div>
         <div id="content-container"></div>
     </main>
-
-    <!-- MODAL DE PELÍCULAS Y SERIES - REDISEÑADO COMPLETAMENTE -->
-    <div class="modal-full" id="movie-modal">
-        <div class="modal-full-content">
-
-            <!-- HEADER CON BACKDROP Y POSTER -->
-            <div class="modal-full-header">
-                <img class="modal-full-backdrop" id="modal-backdrop" src="/placeholder.svg" alt="Backdrop">
-                <div class="modal-full-header-gradient"></div>
-                <button class="modal-full-close" id="modal-close">
+    <!-- Modal de detalles de película -->
+    <div class="modal" id="movie-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <img class="modal-backdrop" id="modal-backdrop" src="/placeholder.svg" alt="Backdrop">
+                <img class="modal-poster" id="modal-poster" src="/placeholder.svg" alt="Poster">
+                <button class="modal-close" id="modal-close">
                     <i class="fas fa-times"></i>
                 </button>
-                <div class="modal-full-poster-container">
-                    <img class="modal-full-poster" id="modal-poster" src="/placeholder.svg" alt="Poster">
-                    <div class="modal-full-type-badge" id="modal-type-badge"></div>
-                </div>
             </div>
-
-            <!-- BODY DEL MODAL CON DISEÑO DE 2 COLUMNAS PARA SERIES -->
-            <div class="modal-full-body">
-
-                <!-- INFORMACIÓN PRINCIPAL -->
-                <div class="modal-full-info">
-                    <h1 class="modal-full-title" id="modal-title"></h1>
-
-                    <div class="modal-full-meta">
-                        <span id="modal-year"><i class="far fa-calendar-alt"></i><span></span></span>
-                        <span id="modal-duration"><i class="far fa-clock"></i><span></span></span>
-                        <span id="modal-rating"><i class="fas fa-star"></i><span></span></span>
-                        <span id="modal-type"><i class="fas fa-tag"></i><span></span></span>
-                    </div>
-
-                    <div class="modal-full-genres" id="modal-genres"></div>
-
-                    <p class="modal-full-description" id="modal-description"></p>
-
-                    <div class="modal-full-cast">
-                        <h3 class="cast-title"><i class="fas fa-users"></i> Reparto</h3>
-                        <div class="cast-list" id="cast-list"></div>
-                    </div>
+            <div class="modal-body">
+                <h1 class="modal-title" id="modal-title"></h1>
+                <div class="modal-meta">
+                    <span id="modal-year"><i class="far fa-calendar-alt"></i><span></span></span>
+                    <span id="modal-duration"><i class="far fa-clock"></i><span></span></span>
+                    <span id="modal-rating"><i class="fas fa-star"></i><span></span></span>
+                    <span id="modal-type"><i class="fas fa-tag"></i><span></span></span>
                 </div>
-
-                <!-- CONTENEDOR DE PELÍCULAS (SERVIDORES) -->
-                <div id="movie-servers-section" class="servers-full-section">
-                    <div class="section-header-compact">
-                        <h3 class="servers-title"><i class="fas fa-server"></i> Opciones de reproducción</h3>
-                    </div>
-                    <div id="server-tabs" class="server-tabs-full"></div>
-                    <div id="server-contents-full" class="server-contents-full"></div>
+                <div class="modal-genres" id="modal-genres"></div>
+                <p class="modal-description" id="modal-description"></p>
+                <div class="modal-cast">
+                    <h3 class="cast-title"><i class="fas fa-users"></i> Reparto</h3>
+                    <div class="cast-list" id="cast-list"></div>
                 </div>
-
-                <!-- CONTENEDOR DE SERIES (DISEÑO DE 2 COLUMNAS) -->
-                <div id="series-seasons-section" class="seasons-full-section" style="display: none;">
-                    <div class="seasons-layout">
-                        <!-- COLUMNA IZQUIERDA: LISTA DE TEMPORADAS -->
-                        <div class="seasons-sidebar">
-                            <div class="section-header-compact">
-                                <h3 class="seasons-title"><i class="fas fa-layer-group"></i> Temporadas</h3>
-                            </div>
-                            <div class="seasons-tabs-vertical" id="seasons-tabs"></div>
-                        </div>
-
-                        <!-- COLUMNA DERECHA: EPISODIOS DE LA TEMPORADA SELECCIONADA -->
-                        <div class="episodes-container">
-                            <div class="section-header-compact">
-                                <h3 class="episodes-title"><i class="fas fa-list"></i> Episodios</h3>
-                            </div>
-                            <div id="seasons-contents" class="episodes-list-full"></div>
-                        </div>
-                    </div>
+                <div id="movie-servers-section" class="servers-section">
+                    <h3 class="servers-title"><i class="fas fa-server"></i> Opciones de reproducción</h3>
+                    <div class="server-tabs" id="server-tabs"></div>
+                    <div id="server-contents"></div>
+                </div>
+                <div id="series-seasons-section" class="seasons-section" style="display: none;">
+                    <h3 class="seasons-title"><i class="fas fa-layer-group"></i> Temporadas</h3>
+                    <div class="seasons-tabs" id="seasons-tabs"></div>
+                    <div id="seasons-contents"></div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- REPRODUCTOR DE VIDEO (PELÍCULAS/SERIES) -->
+    <!-- Reproductor de video -->
     <div class="player-container" id="player-container">
         <div class="player-content">
             <div class="player-header">
@@ -167,8 +123,7 @@
             <iframe id="player-iframe" class="player-iframe" allowfullscreen></iframe>
         </div>
     </div>
-
-    <!-- REPRODUCTOR DE CANALES HLS -->
+    <!-- Agregado reproductor HLS para canales -->
     <div class="channel-player-container" id="channel-player-container">
         <div class="channel-player-content">
             <div class="channel-player-header">
@@ -198,8 +153,6 @@
             </div>
         </div>
     </div>
-
-    <!-- FOOTER -->
     <footer>
         <div class="footer-content">
             <div>
@@ -207,14 +160,11 @@
                     FilmsGaps <span>Plus</span>
                 </div>
                 <p class="footer-description">
-                    Disfruta de las mejores películas y series online en alta calidad. FilmsGapsPlus te ofrece el mejor
-                    catálogo de entretenimiento sin costo.
+                    Disfruta de las mejores películas y series online en alta calidad. FilmsGapsPlus te ofrece el mejor catálogo de entretenimiento sin costo.
                 </p>
                 <div class="footer-social">
-                    <a href="https://www.tiktok.com/@filmsgapsplus" class="social-icon"><i
-                            class="fab fa-tiktok"></i></a>
-                    <a href="https://www.paypal.com/donate/?hosted_button_id=PGFHSUNXYZPDJ" class="social-icon"><i
-                            class="fab fa-paypal"></i></a>
+                    <a href="https://www.tiktok.com/@filmsgapsplus" class="social-icon"><i class="fab fa-tiktok"></i></a>
+                    <a href="https://www.paypal.com/donate/?hosted_button_id=PGFHSUNXYZPDJ" class="social-icon"><i class="fab fa-paypal"></i></a>
                     <a href="https://t.me/FilmsGapsPlusSoporte" class="social-icon"><i class="fab fa-telegram"></i></a>
                 </div>
             </div>
@@ -235,8 +185,7 @@
                 <h3 class="footer-title">Términos</h3>
                 <ul class="footer-links">
                     <li><a href="terminos.html"><i class="fas fa-file-alt"></i> Términos y condiciones</a></li>
-                    <li><a href="privacidad.html" id="privacy-link"><i class="fas fa-shield-alt"></i> Política de
-                            privacidad</a></li>
+                    <li><a href="privacidad.html" id="privacy-link"><i class="fas fa-shield-alt"></i> Política de privacidad</a></li>
                 </ul>
             </div>
             <div>
@@ -260,8 +209,7 @@
             </p>
         </div>
     </footer>
-
-    <!-- MODAL DE GÉNEROS -->
+    <!-- Modal de géneros -->
     <div class="modal" id="genres-modal">
         <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header" style="height: auto; padding: 1rem;">
@@ -275,29 +223,24 @@
             </div>
         </div>
     </div>
-
-    <!-- MODAL DE SELECCIÓN DE PAÍSES PARA CANALES -->
+    <!-- Modal de selección de países para canales -->
     <div class="modal" id="countries-modal">
         <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header" style="height: auto; padding: 1.5rem; background: var(--card-bg);">
-                <h2 class="modal-title" style="margin: 0;"><i class="fas fa-globe"
-                        style="color: var(--accent-color);"></i> Selecciona un país</h2>
+                <h2 class="modal-title" style="margin: 0;"><i class="fas fa-globe" style="color: var(--accent-color);"></i> Selecciona un país</h2>
                 <button class="modal-close" id="countries-modal-close">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-body" style="padding: 1.5rem; padding-left: 1.5rem;">
                 <div class="countries-search-container">
-                    <input type="text" id="countries-search" class="countries-search-input"
-                        placeholder="Buscar país...">
+                    <input type="text" id="countries-search" class="countries-search-input" placeholder="Buscar país...">
                     <i class="fas fa-search countries-search-icon"></i>
                 </div>
                 <div class="countries-grid-modal" id="countries-grid-modal"></div>
             </div>
         </div>
     </div>
-
     <script src="js/main.js"></script>
 </body>
-
 </html>
