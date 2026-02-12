@@ -3,8 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>FilmsGapsPlus | Ver Películas, Series y TV Online en Vivo sin Anuncios</title>
     <link rel="icon" href="img/icon_filmsgapsplus.png" type="image/png">
     <meta name="description"
@@ -80,102 +79,73 @@
         <div id="content-container"></div>
     </main>
 
-    <!-- MODAL DE PELÍCULAS/SERIES REDISEÑADO - PANTALLA COMPLETA -->
-    <div class="fullscreen-modal" id="movie-modal">
-        <div class="fullscreen-modal-content">
+    <!-- MODAL DE PELÍCULAS Y SERIES - REDISEÑADO COMPLETAMENTE -->
+    <div class="modal-full" id="movie-modal">
+        <div class="modal-full-content">
 
-            <!-- HEADER DEL MODAL CON BACKDROP Y POSTER -->
-            <div class="modal-header-full">
-                <div class="modal-backdrop-container">
-                    <img class="modal-backdrop-full" id="modal-backdrop" src="/placeholder.svg" alt="Backdrop">
-                    <div class="modal-backdrop-overlay"></div>
-                </div>
-                <button class="modal-close-full" id="modal-close">
-                    <i class="fas fa-arrow-left"></i>
+            <!-- HEADER CON BACKDROP Y POSTER -->
+            <div class="modal-full-header">
+                <img class="modal-full-backdrop" id="modal-backdrop" src="/placeholder.svg" alt="Backdrop">
+                <div class="modal-full-header-gradient"></div>
+                <button class="modal-full-close" id="modal-close">
+                    <i class="fas fa-times"></i>
                 </button>
-
-                <div class="modal-title-container">
-                    <img class="modal-poster-full" id="modal-poster" src="/placeholder.svg" alt="Poster">
-                    <div class="modal-title-info">
-                        <h1 class="modal-title-full" id="modal-title"></h1>
-                        <div class="modal-meta-full" id="modal-meta-container">
-                            <span id="modal-year"><i class="far fa-calendar-alt"></i><span></span></span>
-                            <span id="modal-duration"><i class="far fa-clock"></i><span></span></span>
-                            <span id="modal-rating"><i class="fas fa-star"></i><span></span></span>
-                            <span id="modal-type"><i class="fas fa-tag"></i><span></span></span>
-                        </div>
-                        <div class="modal-genres-full" id="modal-genres"></div>
-                    </div>
+                <div class="modal-full-poster-container">
+                    <img class="modal-full-poster" id="modal-poster" src="/placeholder.svg" alt="Poster">
+                    <div class="modal-full-type-badge" id="modal-type-badge"></div>
                 </div>
             </div>
 
-            <!-- BODY DEL MODAL CON TABS Y CONTENIDO -->
-            <div class="modal-body-full">
+            <!-- BODY DEL MODAL CON DISEÑO DE 2 COLUMNAS PARA SERIES -->
+            <div class="modal-full-body">
 
-                <!-- TABS PRINCIPALES -->
-                <div class="modal-tabs-container">
-                    <div class="modal-tab active" data-tab="info">
-                        <i class="fas fa-info-circle"></i>
-                        <span>Información</span>
+                <!-- INFORMACIÓN PRINCIPAL -->
+                <div class="modal-full-info">
+                    <h1 class="modal-full-title" id="modal-title"></h1>
+
+                    <div class="modal-full-meta">
+                        <span id="modal-year"><i class="far fa-calendar-alt"></i><span></span></span>
+                        <span id="modal-duration"><i class="far fa-clock"></i><span></span></span>
+                        <span id="modal-rating"><i class="fas fa-star"></i><span></span></span>
+                        <span id="modal-type"><i class="fas fa-tag"></i><span></span></span>
                     </div>
-                    <div class="modal-tab" data-tab="servers" id="tab-servers">
-                        <i class="fas fa-server"></i>
-                        <span>Servidores</span>
-                    </div>
-                    <div class="modal-tab" data-tab="seasons" id="tab-seasons">
-                        <i class="fas fa-layer-group"></i>
-                        <span>Temporadas</span>
+
+                    <div class="modal-full-genres" id="modal-genres"></div>
+
+                    <p class="modal-full-description" id="modal-description"></p>
+
+                    <div class="modal-full-cast">
+                        <h3 class="cast-title"><i class="fas fa-users"></i> Reparto</h3>
+                        <div class="cast-list" id="cast-list"></div>
                     </div>
                 </div>
 
-                <!-- CONTENIDO DE TABS -->
-                <div class="modal-tab-contents">
-
-                    <!-- TAB INFO -->
-                    <div class="modal-tab-content active" id="tab-content-info">
-                        <div class="info-section">
-                            <h3 class="info-section-title">
-                                <i class="fas fa-align-left"></i> Sinopsis
-                            </h3>
-                            <p class="modal-description-full" id="modal-description"></p>
-                        </div>
-
-                        <div class="info-section">
-                            <h3 class="info-section-title">
-                                <i class="fas fa-users"></i> Reparto
-                            </h3>
-                            <div class="cast-list-full" id="cast-list"></div>
-                        </div>
+                <!-- CONTENEDOR DE PELÍCULAS (SERVIDORES) -->
+                <div id="movie-servers-section" class="servers-full-section">
+                    <div class="section-header-compact">
+                        <h3 class="servers-title"><i class="fas fa-server"></i> Opciones de reproducción</h3>
                     </div>
+                    <div id="server-tabs" class="server-tabs-full"></div>
+                    <div id="server-contents-full" class="server-contents-full"></div>
+                </div>
 
-                    <!-- TAB SERVIDORES (PELÍCULAS) -->
-                    <div class="modal-tab-content" id="tab-content-servers">
-                        <div id="movie-servers-section-full">
-                            <div class="servers-header">
-                                <h3 class="servers-title-full">
-                                    <i class="fas fa-server"></i> Opciones de reproducción
-                                </h3>
+                <!-- CONTENEDOR DE SERIES (DISEÑO DE 2 COLUMNAS) -->
+                <div id="series-seasons-section" class="seasons-full-section" style="display: none;">
+                    <div class="seasons-layout">
+                        <!-- COLUMNA IZQUIERDA: LISTA DE TEMPORADAS -->
+                        <div class="seasons-sidebar">
+                            <div class="section-header-compact">
+                                <h3 class="seasons-title"><i class="fas fa-layer-group"></i> Temporadas</h3>
                             </div>
-                            <div class="servers-language-tabs" id="server-tabs-full"></div>
-                            <div class="servers-list-container" id="server-contents-full"></div>
+                            <div class="seasons-tabs-vertical" id="seasons-tabs"></div>
                         </div>
-                    </div>
 
-                    <!-- TAB TEMPORADAS (SERIES) -->
-                    <div class="modal-tab-content" id="tab-content-seasons">
-                        <div id="series-seasons-section-full">
-                            <div class="seasons-layout">
-                                <!-- Sidebar de temporadas -->
-                                <div class="seasons-sidebar">
-                                    <h3 class="seasons-sidebar-title">
-                                        <i class="fas fa-layer-group"></i> Temporadas
-                                    </h3>
-                                    <div class="seasons-list" id="seasons-tabs-full"></div>
-                                </div>
-
-                                <!-- Contenido de episodios -->
-                                <div class="episodes-container" id="seasons-contents-full"></div>
+                        <!-- COLUMNA DERECHA: EPISODIOS DE LA TEMPORADA SELECCIONADA -->
+                        <div class="episodes-container">
+                            <div class="section-header-compact">
+                                <h3 class="episodes-title"><i class="fas fa-list"></i> Episodios</h3>
                             </div>
+                            <div id="seasons-contents" class="episodes-list-full"></div>
                         </div>
                     </div>
                 </div>
@@ -183,7 +153,7 @@
         </div>
     </div>
 
-    <!-- Reproductor de video (iframe) -->
+    <!-- REPRODUCTOR DE VIDEO (PELÍCULAS/SERIES) -->
     <div class="player-container" id="player-container">
         <div class="player-content">
             <div class="player-header">
@@ -198,7 +168,7 @@
         </div>
     </div>
 
-    <!-- Reproductor HLS para canales -->
+    <!-- REPRODUCTOR DE CANALES HLS -->
     <div class="channel-player-container" id="channel-player-container">
         <div class="channel-player-content">
             <div class="channel-player-header">
@@ -229,6 +199,7 @@
         </div>
     </div>
 
+    <!-- FOOTER -->
     <footer>
         <div class="footer-content">
             <div>
@@ -290,7 +261,7 @@
         </div>
     </footer>
 
-    <!-- Modal de géneros -->
+    <!-- MODAL DE GÉNEROS -->
     <div class="modal" id="genres-modal">
         <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header" style="height: auto; padding: 1rem;">
@@ -305,7 +276,7 @@
         </div>
     </div>
 
-    <!-- Modal de selección de países para canales -->
+    <!-- MODAL DE SELECCIÓN DE PAÍSES PARA CANALES -->
     <div class="modal" id="countries-modal">
         <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header" style="height: auto; padding: 1.5rem; background: var(--card-bg);">
