@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const countriesGridModal = document.getElementById("countries-grid-modal")
     const countriesSearch = document.getElementById("countries-search")
 
-    // URL base
+    // URL base inicial
     let apiBaseUrl = "https://anusdbs.onrender.com";
 
     // Variables para las URLs de la API (se inicializarán después de obtener la URL base)
