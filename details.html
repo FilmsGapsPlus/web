@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalles | FilmsGapsPlus</title>
+    <link rel="icon" href="img/icon_filmsgapsplus.png" type="image/png">
+    <meta name="description" content="Descubre todos los detalles, reparto, servidores y opciones de reproducción de películas y series en FilmsGapsPlus.">
+    <meta name="robots" content="noindex, follow">
+    <link rel="canonical" href="https://filmsgapsplus.github.io/web/details.html">
+    <meta name="theme-color" content="#050506">
+
+    <!-- Open Graph / Twitter: se actualizan en vivo con los datos del título -->
+    <meta property="og:type" content="video.movie">
+    <meta property="og:site_name" content="FilmsGapsPlus">
+    <meta property="og:title" content="Detalles | FilmsGapsPlus">
+    <meta property="og:description" content="Películas y series online sin anuncios.">
+    <meta property="og:url" content="https://filmsgapsplus.github.io/web/details.html">
+    <meta property="og:image" content="https://filmsgapsplus.github.io/web/img/icon_filmsgapsplus.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Detalles | FilmsGapsPlus">
+    <meta name="twitter:description" content="Películas y series online sin anuncios.">
+    <meta name="twitter:image" content="https://filmsgapsplus.github.io/web/img/icon_filmsgapsplus.png">
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css?v=20260823">
+</head>
+<body>
+    <a class="back-float" id="back-btn" href="/" aria-label="Volver al inicio">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+
+    <div class="detail-skeleton-hero" id="detail-skeleton"></div>
+
+    <!-- Hero cinematográfico -->
+    <section class="detail-hero" id="detail-hero" style="display:none;">
+        <div class="detail-hero-bg" id="detail-hero-bg"></div>
+        <img class="detail-hero-backdrop" id="detail-backdrop" src="/placeholder.svg" alt="">
+        <div class="detail-hero-fade"></div>
+        <div class="detail-hero-inner">
+            <div class="detail-poster-wrap">
+                <img class="detail-poster" id="detail-poster" src="/placeholder.svg" alt="Póster">
+            </div>
+            <div class="detail-head-info">
+                <span class="detail-type-badge" id="detail-type-badge"><i class="fas fa-film"></i> Película</span>
+                <h1 class="detail-title" id="detail-title">Cargando...</h1>
+                <div class="meta-chips" id="meta-chips"></div>
+                <p class="detail-overview" id="hero-overview"></p>
+                <div class="detail-actions">
+                    <button class="btn btn-glass" id="resume-btn" style="display:none;">
+                        <i class="fas fa-rotate-right"></i> Continuar viendo
+                    </button>
+                    <button class="btn btn-red" id="detail-play-btn" style="display:none;">
+                        <i class="fas fa-play"></i> Reproducir
+                    </button>
+                    <button class="btn btn-glass" id="servers-btn" style="display:none;">
+                        <i class="fas fa-server"></i> Opciones de reproducción
+                    </button>
+                    <button class="btn btn-glass" id="share-btn">
+                        <i class="fas fa-share-alt"></i> Compartir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cuerpo del detalle -->
+    <main class="detail-body" id="detail-body" style="display:none;"></main>
+
+    <!-- Estado de error -->
+    <div class="empty-state" id="detail-error" style="display:none;">
+        <i class="fas fa-clapperboard"></i>
+        <h2>Contenido no disponible</h2>
+        <p>No pudimos encontrar este contenido o hubo un problema de conexión.</p>
+        <div style="display:flex; gap:0.7rem; justify-content:center; flex-wrap:wrap;">
+            <button class="btn btn-glass" onclick="history.back()">
+                <i class="fas fa-arrow-left"></i> Volver
+            </button>
+            <button class="btn btn-primary" id="retry-detail-btn">
+                <i class="fas fa-redo"></i> Reintentar
+            </button>
+        </div>
+    </div>
+
+    <div id="footer-root"></div>
+
+    <script src="js/url-utils.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/footer.js"></script>
+    <script src="js/details.js"></script>
+</body>
+</html>

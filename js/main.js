@@ -1,25 +1,20 @@
 document.addEventListener("DOMContentLoaded", () => {
+    // ============================================================
     // Elementos del DOM
+    // ============================================================
     const heroSection = document.getElementById("hero-section")
     const contentContainer = document.getElementById("content-container")
     const loadingElement = document.getElementById("loading")
     const searchInput = document.getElementById("search-input")
     const searchBtn = document.getElementById("search-btn")
-    const movieModal = document.getElementById("movie-modal")
-    const modalClose = document.getElementById("modal-close")
     const navTabs = document.querySelectorAll(".nav-tab")
     const tabs = document.getElementById("tabs")
-    const playerContainer = document.getElementById("player-container")
-    const playerIframe = document.getElementById("player-iframe")
-    const playerClose = document.getElementById("player-close")
-    const playerTitle = document.getElementById("player-title")
+    const siteHeader = document.getElementById("site-header")
     const feedbackBtn = document.getElementById("feedback-btn")
 
     const channelPlayerContainer = document.getElementById("channel-player-container")
-    const channelVideo = document.getElementById("channel-video")
     const channelPlayerClose = document.getElementById("channel-player-close")
-    const channelPlayerTitle = document.getElementById("channel-player-title")
-    const channelPlayerLogo = document.getElementById("channel-player-logo")
+    const channelVideoEl = document.getElementById("channel-video")
     const channelVideoLoading = document.getElementById("channel-video-loading")
     const channelVideoError = document.getElementById("channel-video-error")
     const channelRetryBtn = document.getElementById("channel-retry-btn")
@@ -29,847 +24,216 @@ document.addEventListener("DOMContentLoaded", () => {
     const countriesGridModal = document.getElementById("countries-grid-modal")
     const countriesSearch = document.getElementById("countries-search")
 
-    // URL base inicial
-    let apiBaseUrl = "https://anusdbs.onrender.com";
+    // ============================================================
+    // Configuración de API (dominio propio con CORS abierto)
+    // ============================================================
+    let apiBaseUrl = "https://anusdbs.onrender.com"
 
-    // Variables para las URLs de la API (se inicializarán después de obtener la URL base)
-    let apiUrlMovies = "";
-    let apiUrlSeries = "";
-    let apiUrlChannels = "";
-    let apiUrlChannelsByIso = "";
-
+    const apiUrlMovies = `${apiBaseUrl}/api/movies`
+    const apiUrlSeries = `${apiBaseUrl}/api/series`
+    const apiUrlChannels = `${apiBaseUrl}/api/channels`
+    const apiUrlChannelsByIso = `${apiBaseUrl}/api/channels/iso/`
     const apiUrlIpCountry = "https://api.ipaddress.com/iptocountry?format=json"
 
-    // Configuración del caché (24 horas en milisegundos)
-    const CACHE_DURATION = 72 * 60 * 60 * 1000; // 24 horas
-    const CACHE_PREFIX = 'filmsgapsplus_';
+    // ============================================================
+    // Caché local con TTL
+    // - Mientras el TTL esté vigente: TODO se sirve desde caché (sin red) = carga instantánea
+    // - Al expirar: se pide fresco a la API y, si falla la red, se usa el respaldo viejo
+    // ⏱ Ajusta aquí el "X tiempo":
+    // ============================================================
+    const CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 horas
+    const CACHE_PREFIX = "filmsgapsplus_"
+    const CONTENT_INDEX_KEY = "fgp_content_index_v1"
+    const INDEX_MAX_PER_TYPE = 150
 
-    // Funciones para manejar el caché
     function getFromCache(key) {
         try {
-            const cacheKey = CACHE_PREFIX + key;
-            const cachedData = localStorage.getItem(cacheKey);
-
-            if (!cachedData) return null;
-
-            const {
-                data,
-                timestamp
-            } = JSON.parse(cachedData);
-
-            // Verificar si el caché ha expirado
-            if (Date.now() - timestamp > CACHE_DURATION) {
-                localStorage.removeItem(cacheKey);
-                return null;
+            const cachedData = localStorage.getItem(CACHE_PREFIX + key)
+            if (!cachedData) return null
+            const { data, timestamp } = JSON.parse(cachedData)
+            if (Date.now() - timestamp > CACHE_TTL_MS) {
+                localStorage.removeItem(CACHE_PREFIX + key)
+                return null
             }
-
-            return data;
+            return data
         } catch (error) {
-            // console.error('Error reading from cache:', error);
-            return null;
+            return null
+        }
+    }
+
+    function readCacheEntry(key) {
+        try {
+            const raw = localStorage.getItem(CACHE_PREFIX + key)
+            return raw ? JSON.parse(raw) : null // { data, timestamp }
+        } catch (error) {
+            return null
         }
     }
 
     function saveToCache(key, data) {
         try {
-            const cacheKey = CACHE_PREFIX + key;
-            const cacheData = {
-                data: data,
-                timestamp: Date.now()
-            };
-            localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-        } catch (error) {
-            // console.error('Error saving to cache:', error);
-        }
+            localStorage.setItem(
+                CACHE_PREFIX + key,
+                JSON.stringify({ data: data, timestamp: Date.now() })
+            )
+        } catch (error) { /* cuota llena */ }
     }
 
     function clearExpiredCache() {
         try {
-            const keysToRemove = [];
-
+            const keysToRemove = []
             for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-
+                const key = localStorage.key(i)
                 if (key.startsWith(CACHE_PREFIX)) {
                     try {
-                        const cachedData = JSON.parse(localStorage.getItem(key));
-                        if (Date.now() - cachedData.timestamp > CACHE_DURATION) {
-                            keysToRemove.push(key);
-                        }
+                        const cachedData = JSON.parse(localStorage.getItem(key))
+                        if (Date.now() - cachedData.timestamp > CACHE_TTL_MS) keysToRemove.push(key)
                     } catch (e) {
-                        keysToRemove.push(key);
+                        keysToRemove.push(key)
                     }
                 }
             }
+            keysToRemove.forEach(key => localStorage.removeItem(key))
+        } catch (error) { /* noop */ }
+    }
 
-            keysToRemove.forEach(key => localStorage.removeItem(key));
+    clearExpiredCache()
+
+    // Refrescos en segundo plano en curso (stale-while-revalidate)
+    const inflightRevalidations = new Set()
+
+    function revalidateInBackground(url, options, cacheKey) {
+        if (inflightRevalidations.has(cacheKey)) return
+        inflightRevalidations.add(cacheKey)
+        ;(async () => {
+            try {
+                const response = await fetch(url, options)
+                if (response.ok) saveToCache(cacheKey, await response.json())
+            } catch (error) { /* se mantiene el stale */ } finally {
+                inflightRevalidations.delete(cacheKey)
+            }
+        })()
+    }
+
+    // ¿Hay caché vigente? → entrada "caliente": render instantáneo sin spinner global
+    function hasWarmCache() {
+        try {
+            const now = Date.now()
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i)
+                if (!key.startsWith(CACHE_PREFIX + "fetch_")) continue
+                try {
+                    const { timestamp } = JSON.parse(localStorage.getItem(key))
+                    if (now - timestamp < CACHE_TTL_MS) return true
+                } catch (e) { /* seguir */ }
+            }
+        } catch (error) { /* noop */ }
+        return false
+    }
+
+    async function fetchWithCache(url, options = {}) {
+        const cacheKey = `fetch_${url}_${JSON.stringify(options)}`
+        const entry = readCacheEntry(cacheKey)
+
+        // 1) Entrada fresca (dentro del TTL): servir directo de caché, cero red
+        if (entry && Date.now() - entry.timestamp < CACHE_TTL_MS) {
+            return entry.data
+        }
+
+        // 2) Entrada vencida pero existente: mostrarla al instante y refrescar de fondo
+        if (entry) {
+            revalidateInBackground(url, options, cacheKey)
+            return entry.data
+        }
+
+        // 3) Sin caché: red obligatoria
+        try {
+            const response = await fetch(url, options)
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+            const data = await response.json()
+            saveToCache(cacheKey, data)
+            return data
         } catch (error) {
-            // console.error('Error clearing expired cache:', error);
+            // Respaldo final: cualquier resto viejo si la red falla
+            const stale = readCacheEntry(cacheKey)
+            if (stale) return stale.data
+            throw error
         }
     }
 
-    // Limpiar caché expirado al cargar la página
-    clearExpiredCache();
-
-    // Función para inicializar las URLs de la API
-    function initializeApiUrls() {
-        apiUrlMovies = `${apiBaseUrl}/api/movies`;
-        apiUrlSeries = `${apiBaseUrl}/api/series`;
-        apiUrlChannels = `${apiBaseUrl}/api/channels`;
-        apiUrlChannelsByIso = `${apiBaseUrl}/api/channels/iso/`;
-        // console.log("URLs de API inicializadas con base:", apiBaseUrl);
+    // ============================================================
+    // Índice de contenido para deeplinks (id -> objeto completo)
+    // ============================================================
+    function loadContentIndex() {
+        try {
+            return JSON.parse(localStorage.getItem(CONTENT_INDEX_KEY)) || {}
+        } catch (error) {
+            return {}
+        }
     }
 
-    // Función para obtener URLs de la API
-    function getApiUrl(type) {
-        return type === "movies" ? apiUrlMovies: apiUrlSeries;
+    function getItemId(item) {
+        return item && (item.id || item._id || null)
     }
 
-    // Lista de géneros disponibles
+    function rememberItems(type, items) {
+        if (!Array.isArray(items) || items.length === 0) return
+        const index = loadContentIndex()
+        const bucket = index[type] || (index[type] = {})
+        items.forEach(item => {
+            const id = getItemId(item)
+            if (!id) return
+            bucket[id] = item
+        })
+        const keys = Object.keys(bucket)
+        if (keys.length > INDEX_MAX_PER_TYPE) {
+            keys.slice(0, keys.length - INDEX_MAX_PER_TYPE).forEach(k => delete bucket[k])
+        }
+        try {
+            localStorage.setItem(CONTENT_INDEX_KEY, JSON.stringify(index))
+        } catch (error) { /* cuota llena */ }
+    }
+
+    // Navegación por deeplink a la página de detalle (idempotente para testing)
+    if (!window.navigateTo) {
+        window.navigateTo = url => { window.location.href = url }
+    }
+    const FGPUrl = window.FGPUrl || {
+        buildDetailUrl: (type, id) => `details.html?type=${type}&id=${encodeURIComponent(id)}`
+    }
+
+    function openDetails(type, item) {
+        if (!item) return
+        let id = getItemId(item)
+        if (!id) {
+            // ID sintético determinista para ítems sin id
+            id = "t_" + Array.from((item.titulo || "") + (item.ano || ""))
+                .reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
+                .toString(36)
+            rememberItems(type, [{ ...item, id: id }])
+        }
+        window.navigateTo(FGPUrl.buildDetailUrl(type, id))
+    }
+
+    // Rating estable basado en el id (sin parpadeos entre renders)
+    function stableRating(seedStr) {
+        let h = 0
+        const s = String(seedStr || "")
+        for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0
+        return (6.9 + Math.abs(h % 24) / 10).toFixed(1)
+    }
+
+    // ============================================================
+    // Géneros
+    // ============================================================
     const allGenres = [
-        "Accion",
-        "Animacion",
-        "Anime",
-        "Aventura",
-        "Belica",
-        "Ciencia Ficcion",
-        "Comedia",
-        "Crimen",
-        "Documental",
-        "Drama",
-        "Familia",
-        "Fantasia",
-        "Historia",
-        "Infantil",
-        "Misterio",
-        "Musica",
-        "News",
-        "Película de TV",
-        "Politica",
-        "Reality",
-        "Romance",
-        "Suspenso",
-        "Talk",
-        "Telenovela",
-        "Terror",
-        "Western",
+        "Accion", "Animacion", "Anime", "Aventura", "Belica", "Ciencia Ficcion",
+        "Comedia", "Crimen", "Documental", "Drama", "Familia", "Fantasia",
+        "Historia", "Infantil", "Misterio", "Musica", "News", "Película de TV",
+        "Politica", "Reality", "Romance", "Suspenso", "Talk", "Telenovela",
+        "Terror", "Western",
     ]
 
-    // Variables para el estado de la aplicación
-    let isLoading = false
-    let featuredContent = null
-    let searchResultsMovies = []
-    let searchResultsSeries = []
-    let isSearchActive = false
-    let currentContentType = "movies" // 'movies', 'series' o 'channels'
-
-    // Cache para géneros ya cargados
-    let genreCache = {
-        movies: {},
-        series: {}
-    }
-
-    let allCountries = []
-    let currentCountryIso = null
-    let currentCountryChannels = []
-    let userCountryIso = null
-    let hlsInstance = null
-    let currentChannelUrl = null
-
-    // Importación de HLS.js
-    const Hls = window.Hls
-
-    // Función para realizar fetch con caché
-    async function fetchWithCache(url, options = {}) {
-        const cacheKey = `fetch_${url}_${JSON.stringify(options)}`;
-
-        // Intentar obtener del caché
-        const cachedData = getFromCache(cacheKey);
-        if (cachedData) {
-            // console.log('Using cached data for:', url);
-            return cachedData;
-        }
-
-        // Si no hay en caché, hacer la petición
-        try {
-            // console.log('Fetching fresh data for:', url);
-            const response = await fetch(url, options);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            // Guardar en caché
-            saveToCache(cacheKey, data);
-
-            return data;
-        } catch (error) {
-            // console.error('Fetch error:', error);
-
-            // En caso de error, intentar usar datos cacheados aunque estén viejos
-            const oldCachedData = getFromCache(cacheKey, true); // true para ignorar expiración
-            if (oldCachedData) {
-                // console.log('Using expired cached data due to fetch error');
-                return oldCachedData;
-            }
-
-            throw error;
-        }
-    }
-
-    // Función para verificar si una URL está disponible
-    async function checkUrlAvailability(url) {
-        try {
-            // Probamos con el favicon.ico que generalmente existe
-            const faviconUrl = `${url}/favicon.ico`;
-
-            // Usamos fetch con timeout
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos timeout
-
-            const response = await fetch(faviconUrl, {
-                method: 'HEAD',
-                signal: controller.signal,
-                cache: 'no-cache'
-            });
-
-            clearTimeout(timeoutId);
-
-            // Si obtenemos una respuesta 2xx, la URL está disponible
-            return response.ok;
-        } catch (error) {
-            // console.log(`URL ${url} no disponible:`, error.message);
-            return false;
-        }
-    }
-
-    // Función principal para inicializar la aplicación
-    async function initializeApp() {
-        try {
-            // Mostrar loading mientras obtenemos la URL base
-            loadingElement.style.display = "flex";
-            heroSection.style.display = "none";
-            contentContainer.style.display = "none";
-            tabs.style.display = "none";
-
-            // Obtener la URL base del JSON remoto
-            const response = await fetch("https://filmsgapsplus.github.io/web/cloudflared.json");
-            const data = await response.json();
-
-            let remoteUrl = null;
-            if (data.server_url) {
-                remoteUrl = data.server_url;
-                // console.log("URL remota encontrada:", remoteUrl);
-
-                // Verificar si la URL remota está disponible
-                // console.log("Verificando disponibilidad de URL remota...");
-                const isRemoteAvailable = await checkUrlAvailability(remoteUrl);
-
-                if (isRemoteAvailable) {
-                    apiBaseUrl = remoteUrl;
-                    // console.log("URL remota disponible, usando:", apiBaseUrl);
-                } else {
-                    // console.warn("URL remota no disponible, usando localhost:", apiBaseUrl);
-                }
-            } else {
-                // console.warn("No se encontró server_url en el JSON, usando localhost.");
-            }
-
-            // Inicializar las URLs de la API con la base obtenida
-            initializeApiUrls();
-
-            // Cargar el contenido inicial
-            loadContent("movies");
-
-        } catch (err) {
-            // console.error("Error al obtener el JSON de la API:", err);
-            // Usar la URL por defecto si falla
-            initializeApiUrls();
-            loadContent("movies");
-        }
-    }
-
-    // Función para cargar contenido según el tipo
-    async function loadContent(type) {
-        currentContentType = type
-        isLoading = true
-        isSearchActive = false
-
-        heroSection.style.display = "none"
-        contentContainer.style.display = "none"
-        tabs.style.display = "none"
-        loadingElement.style.display = "flex"
-        contentContainer.innerHTML = ""
-
-        try {
-            if (type === "channels") {
-                await loadChannelsSection()
-            } else {
-                // Cargar contenido destacado para el hero
-                await loadFeaturedContent(type)
-
-                // Cargar contenido por género
-                await organizeContentByGenre(type)
-            }
-        } catch (error) {
-            // console.error(`Error al cargar contenido:`, error)
-            contentContainer.innerHTML = `<p>Error al cargar el contenido. Por favor, intenta de nuevo más tarde.</p>`
-        } finally {
-            isLoading = false
-            loadingElement.style.display = "none"
-            tabs.style.display = "flex"
-            if (type !== "channels") {
-                heroSection.style.display = "block"
-            }
-            contentContainer.style.display = "block"
-            scrollToTop()
-        }
-    }
-
-    // Función para cargar contenido destacado
-    async function loadFeaturedContent(type) {
-        try {
-            const apiUrl = getApiUrl(type)
-            const data = await fetchWithCache(`${apiUrl}?limit=1&random=true`)
-
-            if (data.success && data.data.length > 0) {
-                featuredContent = data.data[0]
-                updateHeroSection(featuredContent, type)
-            }
-        } catch (error) {
-            // console.error("Error cargando contenido destacado:", error)
-        }
-    }
-
-    async function loadChannelsSection() {
-        try {
-            // console.log('=== INICIANDO loadChannelsSection ===');
-
-            // Detectar país del usuario si no lo tenemos
-            if (!userCountryIso) {
-                try {
-                    // console.log('Detectando país del usuario...');
-                    const ipResponse = await fetch(apiUrlIpCountry);
-                    const ipData = await ipResponse.json();
-                    // console.log('Datos de IP:', ipData);
-                    userCountryIso = ipData.country_code.toLowerCase();
-                    // console.log('País detectado:', userCountryIso);
-                } catch (e) {
-                    // console.error("Error detectando país:", e);
-                    userCountryIso = "us"; // Default a US si falla
-                }
-            }
-
-            // Cargar lista de países si no la tenemos
-            if (allCountries.length === 0) {
-                // console.log('Cargando lista de países...');
-                // console.log('URL de países:', apiUrlChannels);
-                const countriesResponse = await fetch(apiUrlChannels);
-                const countriesData = await countriesResponse.json();
-                // console.log('Datos de países recibidos:', countriesData);
-
-                if (countriesData.success && countriesData.data.length > 0) {
-                    allCountries = countriesData.data[0].countries;
-                    // console.log('Países cargados:', allCountries.length);
-                    // console.log('Primer país:', allCountries[0]);
-                } else {
-                    // console.log('No se encontraron países o estructura incorrecta');
-                }
-            }
-
-            // Si no hay país seleccionado, usar el del usuario
-            if (!currentCountryIso) {
-                // console.log('No hay país seleccionado, buscando:', userCountryIso);
-                const userCountryExists = allCountries.find((c) => c.iso === userCountryIso);
-                // console.log('¿País del usuario existe en la lista?', userCountryExists);
-
-                currentCountryIso = userCountryExists ? userCountryIso: allCountries[0]?.iso || "us";
-                // console.log('País seleccionado:', currentCountryIso);
-            }
-
-            // Cargar canales del país seleccionado
-            // console.log('Cargando canales para país:', currentCountryIso);
-            await loadChannelsByCountry(currentCountryIso);
-            // console.log('Canales cargados:', currentCountryChannels.length);
-
-            // Renderizar la interfaz de canales
-            // console.log('Renderizando UI...');
-            renderChannelsUI();
-
-            // console.log('=== FIN loadChannelsSection ===');
-        } catch (error) {
-            // console.error("Error cargando canales:", error);
-            contentContainer.innerHTML = `<p>Error al cargar los canales. Por favor, intenta de nuevo más tarde.</p>`;
-        }
-    }
-
-    async function loadChannelsByCountry(iso) {
-        try {
-            const response = await fetch(`${apiUrlChannelsByIso}${iso}`)
-            const data = await response.json()
-            // console.log('Datos recibidos para país', iso, ':', data) // Para depuración
-
-            if (data.success && data.data && data.data.servidores) {
-                currentCountryChannels = data.data.servidores
-                currentCountryIso = iso
-                // console.log('Canales cargados:', currentCountryChannels.length) // Para depuración
-            } else {
-                // console.log('Estructura de datos inesperada:', data)
-                currentCountryChannels = []
-            }
-        } catch (error) {
-            // console.error("Error cargando canales del país:", error)
-            currentCountryChannels = []
-        }
-    }
-
-    function renderChannelsUI() {
-        contentContainer.innerHTML = ""
-
-        // Obtener información del país actual
-        const currentCountry = allCountries.find((c) => c.iso === currentCountryIso)
-
-        // Crear contenedor principal
-        const channelsSection = document.createElement("div")
-        channelsSection.className = "channels-section fadeInUp"
-
-        // Header con título y selector de país
-        channelsSection.innerHTML = `
-        <div class="channels-header-container">
-        <div class="channels-header-left">
-        <h2 class="countries-title"><i class="fas fa-globe"></i> Canales de TV en Vivo</h2>
-        <p style="color: var(--text-secondary); margin-top: 0.5rem;">
-        Transmisiones en directo de canales de todo el mundo
-        </p>
-        </div>
-        <div class="channels-header-right">
-        <button class="country-selector-btn" id="open-countries-modal">
-        <span class="country-flag">${currentCountry?.flag || "🌍"}</span>
-        <div class="country-details">
-        <div class="country-name">${currentCountry?.name || "Seleccionar país"}</div>
-        <div class="country-channels-count">
-        <i class="fas fa-tv"></i> ${currentCountry?.server_count || 0} canales disponibles
-        </div>
-        </div>
-        <i class="fas fa-chevron-down change-country-icon"></i>
-        </button>
-        </div>
-        </div>
-        `
-
-        contentContainer.appendChild(channelsSection)
-
-        // Event listener para abrir modal de países
-        const openCountriesModalBtn = document.getElementById("open-countries-modal")
-        if (openCountriesModalBtn) {
-            openCountriesModalBtn.addEventListener("click", () => {
-                openCountriesModal()
-            })
-        }
-
-        // Crear sección de canales del país seleccionado
-        if (currentCountryChannels.length > 0) {
-            const channelsGrid = document.createElement("div")
-            channelsGrid.className = "genre-section fadeInUp"
-            channelsGrid.style.marginTop = "1rem"
-
-            const channelsHeader = document.createElement("div")
-            channelsHeader.className = "section-header"
-            channelsHeader.innerHTML = `
-            <h2 class="section-title">
-            <i class="fas fa-broadcast-tower"></i>
-            Canales de ${currentCountry?.name || "TV"}
-            <span style="font-size: 0.9rem; color: var(--text-muted); margin-left: 0.5rem;">
-            (${currentCountryChannels.length} disponibles)
-            </span>
-            </h2>
-            `
-
-            const channelsGridContainer = document.createElement("div")
-            channelsGridContainer.className = "channels-grid"
-
-            currentCountryChannels.forEach((channel, index) => {
-                const channelCard = document.createElement("div")
-                channelCard.className = "channel-card"
-                channelCard.innerHTML = `
-                <div class="channel-logo-container">
-                <img class="channel-logo" src="${channel.logo}" alt="${channel.titulo}" loading="lazy"
-                onerror="this.src='/tv-channel-logo.jpg'">
-                <div class="channel-overlay">
-                <button class="channel-play-btn">
-                <i class="fas fa-play"></i>
-                </button>
-                </div>
-                <div class="channel-live-badge">EN VIVO</div>
-                ${channel.calidad ? `<div class="channel-quality">${channel.calidad}</div>`: ""}
-                </div>
-                <div class="channel-info">
-                <h3 class="channel-title">${channel.titulo}</h3>
-                <div class="channel-meta">
-                <span><i class="fas fa-signal"></i> Streaming</span>
-                </div>
-                </div>
-                `
-                channelCard.addEventListener("click", () => {
-                    playChannel(channel)
-                })
-                channelsGridContainer.appendChild(channelCard)
-            })
-
-            channelsGrid.appendChild(channelsHeader)
-            channelsGrid.appendChild(channelsGridContainer)
-            contentContainer.appendChild(channelsGrid)
-        } else {
-            const noChannels = document.createElement("div")
-            noChannels.className = "fadeInUp"
-            noChannels.style.textAlign = "center"
-            noChannels.style.padding = "3rem 1rem"
-            noChannels.innerHTML = `
-            <i class="fas fa-tv" style="font-size: 3rem; color: var(--accent-color); margin-bottom: 1rem;"></i>
-            <h2>No hay canales disponibles</h2>
-            <p style="color: var(--text-secondary); margin: 1rem 0;">
-            No se encontraron canales para este país. Intenta seleccionar otro país.
-            </p>
-            <button class="btn btn-primary" id="select-another-country">
-            <i class="fas fa-globe"></i> Seleccionar otro país
-            </button>
-            `
-            contentContainer.appendChild(noChannels)
-
-            const selectAnotherBtn = document.getElementById("select-another-country")
-            if (selectAnotherBtn) {
-                selectAnotherBtn.addEventListener("click", openCountriesModal)
-            }
-        }
-    }
-
-    function openCountriesModal() {
-        countriesModal.style.display = "block"
-        document.body.style.overflow = "hidden"
-        renderCountriesInModal()
-        if (countriesSearch) {
-            countriesSearch.value = ""
-            countriesSearch.focus()
-        }
-    }
-
-    function closeCountriesModal() {
-        countriesModal.style.display = "none"
-        document.body.style.overflow = "auto"
-    }
-
-    function renderCountriesInModal(filter = "") {
-        if (!countriesGridModal) return
-
-        countriesGridModal.innerHTML = ""
-
-        const filteredCountries = filter
-        ? allCountries.filter((c) => c.name.toLowerCase().includes(filter.toLowerCase())): allCountries
-
-        if (filteredCountries.length === 0) {
-            countriesGridModal.innerHTML = `
-            <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-muted);">
-            <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
-            No se encontraron países con "${filter}"
-            </div>
-            `
-            return
-        }
-
-        filteredCountries.forEach((country) => {
-            const countryCard = document.createElement("div")
-            countryCard.className = `country-card-modal ${country.iso === currentCountryIso ? "active": ""}`
-            countryCard.innerHTML = `
-            <span class="country-flag">${country.flag}</span>
-            <div class="country-info">
-            <div class="country-name">${country.name}</div>
-            <div class="country-channels">
-            <i class="fas fa-tv"></i> ${country.server_count} canales
-            </div>
-            </div>
-            `
-            countryCard.addEventListener("click", async () => {
-                if (country.iso !== currentCountryIso) {
-                    closeCountriesModal()
-                    loadingElement.style.display = "flex"
-                    await loadChannelsByCountry(country.iso)
-                    loadingElement.style.display = "none"
-                    renderChannelsUI()
-                } else {
-                    closeCountriesModal()
-                }
-            })
-            countriesGridModal.appendChild(countryCard)
-        })
-    }
-
-    if (countriesModalClose) {
-        countriesModalClose.addEventListener("click", closeCountriesModal)
-    }
-
-    if (countriesModal) {
-        countriesModal.addEventListener("click", (e) => {
-            if (e.target === countriesModal) {
-                closeCountriesModal()
-            }
-        })
-    }
-
-    if (countriesSearch) {
-        countriesSearch.addEventListener("input", (e) => {
-            renderCountriesInModal(e.target.value)
-        })
-    }
-
-    function playChannel(channel) {
-        currentChannelUrl = channel.url
-
-        // Mostrar el reproductor
-        channelPlayerContainer.style.display = "block"
-        document.body.style.overflow = "hidden"
-
-        // Actualizar información del canal
-        channelPlayerTitle.innerHTML = `<i class="fas fa-broadcast-tower"></i> <span>${channel.titulo}</span>`
-        channelPlayerLogo.src = channel.logo
-        channelPlayerLogo.onerror = function () {
-            this.src = "/tv-channel-logo.jpg"
-        }
-
-        // Mostrar loading, ocultar error
-        channelVideoLoading.style.display = "flex"
-        channelVideoError.style.display = "none"
-
-        // Destruir instancia HLS anterior si existe
-        if (hlsInstance) {
-            hlsInstance.destroy()
-            hlsInstance = null
-        }
-
-        // Verificar soporte HLS
-        if (Hls && Hls.isSupported()) {
-            hlsInstance = new Hls( {
-                enableWorker: true,
-                lowLatencyMode: true,
-                backBufferLength: 90,
-            })
-
-            hlsInstance.loadSource(channel.url)
-            hlsInstance.attachMedia(channelVideo)
-
-            hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-                channelVideoLoading.style.display = "none"
-                channelVideo.play().catch((e) => {
-                    // console.error("Error al reproducir:", e)
-                })
-            })
-
-            hlsInstance.on(Hls.Events.ERROR, (event, data) => {
-                // console.error("Error HLS:", data)
-                if (data.fatal) {
-                    switch (data.type) {
-                        case Hls.ErrorTypes.NETWORK_ERROR:
-                            // console.error("Error de red, intentando recuperar...")
-                            hlsInstance.startLoad()
-                            break
-                        case Hls.ErrorTypes.MEDIA_ERROR:
-                            // console.error("Error de media, intentando recuperar...")
-                            hlsInstance.recoverMediaError()
-                            break
-                        default:
-                            channelVideoLoading.style.display = "none"
-                            channelVideoError.style.display = "flex"
-                            break
-                    }
-                }
-            })
-        } else if (channelVideo.canPlayType("application/vnd.apple.mpegurl")) {
-            // Safari nativo HLS
-            channelVideo.src = channel.url
-            channelVideo.addEventListener("loadedmetadata", () => {
-                channelVideoLoading.style.display = "none"
-                channelVideo.play()
-            })
-            channelVideo.addEventListener("error", () => {
-                channelVideoLoading.style.display = "none"
-                channelVideoError.style.display = "flex"
-            })
-        } else {
-            channelVideoLoading.style.display = "none"
-            channelVideoError.style.display = "flex"
-        }
-    }
-
-    function closeChannelPlayer() {
-        channelPlayerContainer.style.display = "none"
-        document.body.style.overflow = "auto"
-
-        if (hlsInstance) {
-            hlsInstance.destroy()
-            hlsInstance = null
-        }
-
-        channelVideo.pause()
-        channelVideo.src = ""
-        currentChannelUrl = null
-    }
-
-    if (channelPlayerClose) {
-        channelPlayerClose.addEventListener("click", closeChannelPlayer)
-    }
-
-    if (channelRetryBtn) {
-        channelRetryBtn.addEventListener("click", () => {
-            if (currentChannelUrl) {
-                const channel = currentCountryChannels.find((c) => c.url === currentChannelUrl)
-                if (channel) {
-                    playChannel(channel)
-                }
-            }
-        })
-    }
-
-    if (channelPlayerContainer) {
-        channelPlayerContainer.addEventListener("click", (e) => {
-            if (e.target === channelPlayerContainer) {
-                closeChannelPlayer()
-            }
-        })
-    }
-
-    // Función para actualizar la sección hero
-    function updateHeroSection(content,
-        type) {
-        if (!content) return
-
-        heroSection.innerHTML = `
-        <img class="hero-backdrop" src="${content.miniature || content.post}" alt="${content.titulo}">
-        <div class="hero-overlay"></div>
-        <div class="hero-content fadeInUp">
-        <h1 class="hero-title">${content.titulo}</h1>
-        <div class="hero-meta">
-        <span><i class="far fa-calendar-alt"></i> ${content.ano}</span>
-        ${content.duracion ? `<span><i class="far fa-clock"></i> ${content.duracion}</span>`: ""}
-        <span><i class="fas fa-star"></i> ${(Math.random() * 2 + 7).toFixed(1)}</span>
-        <span><i class="fas fa-tag"></i> ${type === "movies" ? "Película": "Serie"}</span>
-        </div>
-        <div class="hero-buttons">
-        <button class="btn btn-red" onclick="window.openContentModalByContent('${type}', ${JSON.stringify(content).replace(/"/g, "&quot;")})">
-        <i class="fas fa-play"></i> Ver ahora
-        </button>
-        </div>
-        </div>
-        `
-    }
-
-    // Función auxiliar para mezclar arrays (algoritmo Fisher-Yates)
-    function shuffleArray(array) {
-        if (!array || array.length === 0) return array
-
-        const shuffled = [...array]
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i],
-                shuffled[j]] = [shuffled[j],
-                shuffled[i]]
-        }
-        return shuffled
-    }
-
-    // Función para organizar contenido por género (carga progresiva)
-    async function organizeContentByGenre(type) {
-        const apiUrl = getApiUrl(type)
-
-        // Cargar estrenos (año actual o anterior)
-        try {
-            const currentYear = new Date().getFullYear()
-            let releaseContent = []
-
-            // Intentar con año actual
-            const cacheKey = `releases_${type}_${currentYear}`
-            let currentYearData = getFromCache(cacheKey)
-
-            if (!currentYearData) {
-                currentYearData = await fetchWithCache(`${apiUrl}?search=ano=${currentYear}&limit=20&random=true`)
-                saveToCache(cacheKey, currentYearData)
-            }
-
-            if (currentYearData.success && currentYearData.data.length > 0) {
-                releaseContent = currentYearData.data
-            } else {
-                // Si no hay resultados, intentar con año anterior
-                const previousYear = currentYear - 1
-                const previousCacheKey = `releases_${type}_${previousYear}`
-                let previousYearData = getFromCache(previousCacheKey)
-
-                if (!previousYearData) {
-                    previousYearData = await fetchWithCache(`${apiUrl}?search=ano=${previousYear}&limit=20&random=true`)
-                    saveToCache(previousCacheKey, previousYearData)
-                }
-
-                if (previousYearData.success && previousYearData.data.length > 0) {
-                    releaseContent = previousYearData.data
-                }
-            }
-
-            // Mostrar estrenos si se encontraron resultados
-            if (releaseContent.length > 0) {
-                const yearShown = releaseContent[0].ano || currentYear
-
-                // Ordenar aleatoriamente los estrenos
-                const shuffledReleases = shuffleArray(releaseContent)
-
-                createGenreSection(`Estrenos ${yearShown}`, shuffledReleases, "fas fa-fire", type)
-            }
-        } catch (error) {
-            // console.error("Error cargando estrenos:", error)
-        }
-
-        // Cargar los primeros 5 géneros inmediatamente
-        const initialGenres = allGenres.slice(0, 3)
-        const remainingGenres = allGenres.slice(3)
-
-        // Cargar primeros 5 géneros en paralelo
-        await Promise.all(initialGenres.map(genre => loadGenreContent(genre, type)))
-
-        // Cargar el resto de géneros de forma progresiva (uno por uno)
-        for (const genre of remainingGenres) {
-            loadGenreContent(genre, type) // Sin await para que no bloquee
-        }
-    }
-
-    // Función para cargar contenido de un género específico
-    async function loadGenreContent(genre, type) {
-        // Verificar si ya está en cache
-        const cacheKey = `${type}_${genre}`
-        if (genreCache[type][genre]) {
-            // Obtener datos del cache y ordenarlos aleatoriamente
-            const shuffledContent = shuffleArray(genreCache[type][genre])
-            createGenreSection(genre, shuffledContent, getGenreIcon(genre), type)
-            return
-        }
-
-        try {
-            const apiUrl = getApiUrl(type)
-            const data = await fetchWithCache(`${apiUrl}?search=generos=${encodeURIComponent(genre)}&limit=20&random=true`)
-
-            if (data.success && data.data.length > 0) {
-                // Guardar en cache el array original
-                genreCache[type][genre] = data.data
-
-                // Crear copia aleatoria para mostrar
-                const shuffledContent = shuffleArray(data.data)
-
-                // Crear sección con contenido aleatorio
-                createGenreSection(genre, shuffledContent, getGenreIcon(genre), type)
-            }
-        } catch (error) {
-            // console.error(`Error cargando género ${genre}:`, error)
-        }
-    }
-
-    // Función para obtener el icono según el género
     function getGenreIcon(genre) {
         const iconMap = {
             "Accion": "fas fa-running",
@@ -887,8 +251,705 @@ document.addEventListener("DOMContentLoaded", () => {
         return iconMap[genre] || "fas fa-film"
     }
 
-    // Función para crear una sección de género con su contenido
-    function createGenreSection(genreTitle, content, icon = "fas fa-film", type) {
+    // ============================================================
+    // Estado de la aplicación
+    // ============================================================
+    let featuredContent = null
+    let currentContentType = "movies"
+    let isSearchActive = false
+    let isLoading = false
+    let genreCache = { movies: {}, series: {} }
+
+    let allCountries = []
+    let currentCountryIso = null
+    let currentCountryChannels = []
+    let userCountryIso = null
+
+    // Reproductor fullscreen de canales (@videojs/html custom elements)
+    let currentChannel = null
+
+    // ============================================================
+    // Header glass al hacer scroll
+    // ============================================================
+    function onScroll() {
+        if (siteHeader) siteHeader.classList.toggle("scrolled", window.scrollY > 12)
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    onScroll()
+
+    // ============================================================
+    // Inicialización
+    // ============================================================
+    async function initializeApp() {
+        // El spinner lo gestiona loadContent según caché fría/caliente
+        loadContent("movies")
+    }
+
+    async function loadContent(type) {
+        currentContentType = type
+        isSearchActive = false
+
+        // Cambio de pestaña con datos ya en memoria: render instantáneo,
+        // sin volver a pedir nada ni "recargar" el index completo
+        const cachedView = type !== "channels" && viewData[type] &&
+            Array.isArray(viewData[type].featured) && viewData[type].genres.length > 0
+        if (cachedView) {
+            contentContainer.innerHTML = ""
+            loadingElement.style.display = "none"
+            tabs.style.display = "flex"
+            heroSection.style.display = "block"
+            contentContainer.style.display = "block"
+            renderContinueWatching()
+            startFeaturedCarousel(viewData[type].featured, type)
+            viewData[type].genres.forEach(g => createGenreSection(g.genreTitle, g.content, g.icon, type, g.wide))
+            return
+        }
+
+        // Entrada caliente (caché vigente): sin spinner global, render instantáneo
+        const warmCache = hasWarmCache()
+
+        heroSection.style.display = "none"
+        contentContainer.style.display = "none"
+        tabs.style.display = "none"
+        if (!warmCache) loadingElement.style.display = "flex"
+        contentContainer.innerHTML = ""
+
+        try {
+            if (type === "channels") {
+                await loadChannelsSection()
+            } else {
+                genreCollector = []
+                renderContinueWatching()
+                await Promise.all([
+                    loadFeaturedContent(type),
+                    organizeContentByGenre(type)
+                ])
+                // Guardar la vista construida para futuros cambios de pestaña
+                const featured = viewData[type] && viewData[type].featured
+                if (Array.isArray(featured) && featured.length > 0 && genreCollector.length > 0) {
+                    viewData[type] = { featured, genres: genreCollector.slice() }
+                }
+            }
+        } catch (error) {
+            contentContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-wifi"></i>
+                    <h2>No se pudo cargar el contenido</h2>
+                    <p>Revisa tu conexión e intenta de nuevo más tarde.</p>
+                    <button class="btn btn-primary" onclick="location.reload()">
+                        <i class="fas fa-redo"></i> Reintentar
+                    </button>
+                </div>`
+        } finally {
+            isLoading = false
+            loadingElement.style.display = "none"
+            tabs.style.display = "flex"
+            if (type !== "channels") heroSection.style.display = "block"
+            contentContainer.style.display = "block"
+            scrollToTop()
+        }
+    }
+
+    // ============================================================
+    // Hero destacado
+    // ============================================================
+    let featuredTimer = null
+
+    // Vista construida por tipo (destacados + filas por género) para poder
+    // restaurarla al instante al cambiar de pestaña sin refetch
+    const viewData = {}
+    let genreCollector = null
+
+    // Los títulos a veces traen saltos de línea o dobles espacios del origen:
+    // normalizarlos para que el clamp de 2 líneas muestre "..." y no corte feo
+    function cleanTitle(t) {
+        return String(t == null ? "" : t).replace(/\s+/g, " ").trim()
+    }
+
+    async function loadFeaturedContent(type) {
+        try {
+            const apiUrl = type === "movies" ? apiUrlMovies : apiUrlSeries
+            const data = await fetchWithCache(`${apiUrl}?limit=8&random=true`)
+            if (data.success && data.data.length > 0) {
+                rememberItems(type, data.data)
+                startFeaturedCarousel(data.data.slice(0, 6), type)
+                return
+            }
+        } catch (error) { /* sin red: usar el contenido guardado */ }
+        // Fallback offline: carrusel con lo que ya hay en localStorage
+        const cached = getCachedFeatured(type)
+        if (cached.length > 0) startFeaturedCarousel(cached, type)
+    }
+
+    function getCachedFeatured(type) {
+        try {
+            const raw = JSON.parse(localStorage.getItem(CONTENT_INDEX_KEY))
+            const items = Object.values((raw && raw[type]) || {}).filter(it => it && it.titulo)
+            return shuffleArray(items).slice(0, 6)
+        } catch (e) {
+            return []
+        }
+    }
+
+    // Carrusel del "Destacado hoy": rota automáticamente cada 6 s entre
+    // varios títulos (películas o series según la pestaña activa)
+    function startFeaturedCarousel(items, type) {
+        if (!Array.isArray(items) || items.length === 0) return
+        viewData[type] = viewData[type] || {}
+        viewData[type].featured = items
+        let idx = 0
+
+        const show = i => {
+            idx = (i + items.length) % items.length
+            featuredContent = items[idx]
+            updateHeroSection(featuredContent, type, idx, items.length)
+        }
+        const restartTimer = () => {
+            if (featuredTimer) clearInterval(featuredTimer)
+            featuredTimer = setInterval(() => show(idx + 1), 6000)
+        }
+
+        show(0)
+        restartTimer()
+        heroCarouselJump = i => { show(i); restartTimer() }
+    }
+
+    let heroCarouselJump = null
+
+    function updateHeroSection(content, type, activeIdx = 0, total = 0) {
+        if (!content) return
+        heroSection.innerHTML = `
+            <img class="hero-backdrop" src="${content.miniature || content.post}" alt="${content.titulo}">
+            <div class="hero-overlay"></div>
+            <div class="hero-content fadeInUp">
+                <span class="hero-badge"><i class="fas fa-bolt"></i> Destacado hoy</span>
+                <h1 class="hero-title">${cleanTitle(content.titulo)}</h1>
+                <div class="hero-meta">
+                    <span><i class="far fa-calendar-alt"></i> ${content.ano || ""}</span>
+                    ${content.duracion ? `<span><i class="far fa-clock"></i> ${content.duracion}</span>` : ""}
+                    <span class="meta-star"><i class="fas fa-star"></i> ${stableRating(getItemId(content))}</span>
+                    <span><i class="fas fa-tag"></i> ${type === "movies" ? "Película" : "Serie"}</span>
+                </div>
+                <p class="hero-description">${content.descripcion || ""}</p>
+                <div class="hero-buttons">
+                    <button class="btn btn-red" id="hero-watch-btn">
+                        <i class="fas fa-play"></i> Ver ahora
+                    </button>
+                    <button class="btn btn-glass" id="hero-info-btn">
+                        <i class="fas fa-info-circle"></i> Más información
+                    </button>
+                </div>
+                ${total > 1 ? `
+                <div class="hero-dots" role="tablist" aria-label="Destacados">
+                    ${Array.from({ length: total }, (_, i) =>
+                        `<button class="hero-dot ${i === activeIdx ? "active" : ""}" data-i="${i}" aria-label="Destacado ${i + 1}"></button>`
+                    ).join("")}
+                </div>` : ""}
+            </div>`
+        const goDetail = () => openDetails(type, content)
+        document.getElementById("hero-watch-btn").addEventListener("click", goDetail)
+        document.getElementById("hero-info-btn").addEventListener("click", goDetail)
+        heroSection.querySelectorAll(".hero-dot").forEach(dot => {
+            dot.addEventListener("click", e => {
+                e.stopPropagation()
+                if (heroCarouselJump) heroCarouselJump(Number(dot.dataset.i))
+            })
+        })
+    }
+
+    // ============================================================
+    // Canales de TV
+    // ============================================================
+    async function loadChannelsSection() {
+        try {
+            if (!userCountryIso) {
+                try {
+                    const ipResponse = await fetch(apiUrlIpCountry)
+                    const ipData = await ipResponse.json()
+                    userCountryIso = (ipData.country_code || "").toLowerCase() || "us"
+                } catch (e) {
+                    userCountryIso = "us"
+                }
+            }
+
+            if (allCountries.length === 0) {
+                const countriesData = await fetchWithCache(apiUrlChannels)
+                if (countriesData.success && countriesData.data.length > 0) {
+                    allCountries = countriesData.data[0].countries || []
+                }
+            }
+
+            if (!currentCountryIso) {
+                const userCountryExists = allCountries.find(c => c.iso === userCountryIso)
+                currentCountryIso = userCountryExists ? userCountryIso : (allCountries[0]?.iso || "us")
+            }
+
+            if (currentCountryChannels.length === 0) {
+                await loadChannelsByCountry(currentCountryIso)
+            }
+
+            renderChannelsUI()
+        } catch (error) {
+            contentContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-satellite-dish"></i>
+                    <h2>Error al cargar los canales</h2>
+                    <p>Por favor, intenta de nuevo más tarde.</p>
+                    <button class="btn btn-primary" onclick="location.reload()">
+                        <i class="fas fa-redo"></i> Reintentar
+                    </button>
+                </div>`
+        }
+    }
+
+    async function loadChannelsByCountry(iso) {
+        try {
+            const data = await fetchWithCache(`${apiUrlChannelsByIso}${iso}`)
+            if (data.success && data.data && data.data.servidores) {
+                currentCountryChannels = data.data.servidores
+                currentCountryIso = iso
+            } else {
+                currentCountryChannels = []
+            }
+        } catch (error) {
+            currentCountryChannels = []
+        }
+    }
+
+    function sortChannelsAlphabetically(channels) {
+        return [...channels].sort((a, b) =>
+            String(a.titulo || "").localeCompare(String(b.titulo || ""), "es", { sensitivity: "base" })
+        )
+    }
+
+    function getChannelDescription(channel) {
+        return (
+            channel.descripcion ||
+            channel.description ||
+            channel.sinopsis ||
+            ""
+        ).trim() || "Transmisión en vivo disponible las 24 horas."
+    }
+
+    function renderChannelsUI() {
+        contentContainer.innerHTML = ""
+
+        const currentCountry = allCountries.find(c => c.iso === currentCountryIso)
+
+        const channelsSection = document.createElement("div")
+        channelsSection.className = "channels-header-container fadeInUp"
+        channelsSection.innerHTML = `
+            <div class="channels-header-left">
+                <h2 class="countries-title"><i class="fas fa-globe"></i> Canales de TV en Vivo</h2>
+                <p class="channels-subtitle">Transmisiones en directo de canales de todo el mundo</p>
+            </div>
+            <div class="channels-header-right">
+                <button class="country-selector-btn" id="open-countries-modal">
+                    <span class="country-flag">${currentCountry?.flag || "🌍"}</span>
+                    <div class="country-details">
+                        <div class="country-name">${currentCountry?.name || "Seleccionar país"}</div>
+                        <div class="country-channels-count">
+                            <i class="fas fa-tv"></i> ${currentCountry?.server_count || currentCountryChannels.length} canales disponibles
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-down change-country-icon"></i>
+                </button>
+            </div>`
+
+        contentContainer.appendChild(channelsSection)
+
+        const openCountriesModalBtn = document.getElementById("open-countries-modal")
+        if (openCountriesModalBtn) {
+            openCountriesModalBtn.addEventListener("click", openCountriesModal)
+        }
+
+        if (currentCountryChannels.length > 0) {
+            const channelsGrid = document.createElement("div")
+            channelsGrid.className = "genre-section fadeInUp"
+            channelsGrid.style.marginTop = "1rem"
+
+            const channelsHeader = document.createElement("div")
+            channelsHeader.className = "section-header"
+            channelsHeader.innerHTML = `
+                <h2 class="section-title">
+                    <i class="fas fa-broadcast-tower"></i>
+                    Canales de ${currentCountry?.name || "TV"}
+                    <span class="section-count">${sortChannelsAlphabetically(currentCountryChannels).length} disponibles · orden alfabético</span>
+                </h2>`
+
+            const channelsGridContainer = document.createElement("div")
+            channelsGridContainer.className = "channels-grid"
+
+            sortChannelsAlphabetically(currentCountryChannels).forEach(channel => {
+                const channelCard = document.createElement("div")
+                channelCard.className = "channel-card"
+                channelCard.innerHTML = `
+                    <div class="channel-thumb-container">
+                        <img class="channel-logo contain" src="${channel.logo}" alt="${channel.titulo}" loading="lazy"
+                            onerror="this.classList.remove('contain'); this.src='img/icon_filmsgapsplus.png'">
+                        <div class="channel-live-badge">EN VIVO</div>
+                        ${channel.calidad ? `<div class="channel-quality">${channel.calidad}</div>` : ""}
+                    </div>
+                    <div class="channel-info">
+                        <h3 class="channel-title">${channel.titulo}</h3>
+                        <p class="channel-desc">${getChannelDescription(channel)}</p>
+                        <div class="channel-meta-row">
+                            <span><i class="fas fa-signal"></i> Streaming HD</span>
+                            <span><i class="far fa-play-circle"></i> Gratis</span>
+                        </div>
+                    </div>
+                    <button class="channel-play-fab" aria-label="Reproducir ${channel.titulo}">
+                        <i class="fas fa-play"></i>
+                    </button>`
+
+                channelCard.addEventListener("click", () => playChannel(channel))
+                channelsGridContainer.appendChild(channelCard)
+            })
+
+            channelsGrid.appendChild(channelsHeader)
+            channelsGrid.appendChild(channelsGridContainer)
+            contentContainer.appendChild(channelsGrid)
+        } else {
+            const noChannels = document.createElement("div")
+            noChannels.className = "empty-state fadeInUp"
+            noChannels.innerHTML = `
+                <i class="fas fa-tv"></i>
+                <h2>No hay canales disponibles</h2>
+                <p>No se encontraron canales para este país. Intenta seleccionar otro país.</p>
+                <button class="btn btn-primary" id="select-another-country">
+                    <i class="fas fa-globe"></i> Seleccionar otro país
+                </button>`
+            contentContainer.appendChild(noChannels)
+
+            const selectAnotherBtn = document.getElementById("select-another-country")
+            if (selectAnotherBtn) selectAnotherBtn.addEventListener("click", openCountriesModal)
+        }
+    }
+
+    // Modal de países
+    function openCountriesModal() {
+        countriesModal.style.display = "block"
+        document.body.style.overflow = "hidden"
+        renderCountriesInModal()
+        countriesSearch.value = ""
+        countriesSearch.focus()
+    }
+
+    function closeCountriesModal() {
+        countriesModal.style.display = "none"
+        document.body.style.overflow = "auto"
+    }
+
+    function renderCountriesInModal(filter = "") {
+        countriesGridModal.innerHTML = ""
+
+        const filteredCountries = filter
+            ? allCountries.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()))
+            : [...allCountries].sort((a, b) => a.name.localeCompare(b.name, "es"))
+
+        if (filteredCountries.length === 0) {
+            countriesGridModal.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align:center; padding:2rem; color: var(--text-muted);">
+                    <i class="fas fa-search" style="font-size:2rem; margin-bottom:1rem; display:block;"></i>
+                    No se encontraron países con "${filter}"
+                </div>`
+            return
+        }
+
+        filteredCountries.forEach(country => {
+            const countryCard = document.createElement("div")
+            countryCard.className = `country-card-modal ${country.iso === currentCountryIso ? "active" : ""}`
+            countryCard.innerHTML = `
+                <span class="country-flag">${country.flag}</span>
+                <div class="country-info">
+                    <div class="country-name">${country.name}</div>
+                    <div class="country-channels">
+                        <i class="fas fa-tv"></i> ${country.server_count} canales
+                    </div>
+                </div>`
+
+            countryCard.addEventListener("click", async () => {
+                if (country.iso !== currentCountryIso) {
+                    closeCountriesModal()
+                    loadingElement.style.display = "flex"
+                    currentCountryChannels = []
+                    await loadChannelsByCountry(country.iso)
+                    loadingElement.style.display = "none"
+                    renderChannelsUI()
+                } else {
+                    closeCountriesModal()
+                }
+            })
+
+            countriesGridModal.appendChild(countryCard)
+        })
+    }
+
+    countriesModalClose.addEventListener("click", closeCountriesModal)
+    countriesModal.addEventListener("click", e => {
+        if (e.target === countriesModal) closeCountriesModal()
+    })
+    countriesSearch.addEventListener("input", e => renderCountriesInModal(e.target.value))
+
+    // ============================================================
+    // Reproductor de canales — fullscreen, sin logo ni chrome extra
+    // ============================================================
+    function bindChannelVideoEvents() {
+        channelVideoEl.addEventListener("playing", () => {
+            channelVideoLoading.style.display = "none"
+            channelVideoError.style.display = "none"
+        })
+        channelVideoEl.addEventListener("waiting", () => {
+            if (currentChannel) channelVideoLoading.style.display = "flex"
+        })
+        channelVideoEl.addEventListener("error", () => {
+            if (!currentChannel) return
+            channelVideoLoading.style.display = "none"
+            channelVideoError.style.display = "flex"
+        })
+    }
+
+    function startChannelPlayback(channel) {
+        try {
+            channelVideoEl.src = channel.url
+            const playPromise = channelVideoEl.play ? channelVideoEl.play() : null
+            if (playPromise && typeof playPromise.catch === "function") {
+                // Autoplay bloqueado: la skin muestra su botón de reproducción
+                playPromise.catch(() => {
+                    channelVideoLoading.style.display = "none"
+                })
+            }
+        } catch (error) {
+            channelVideoLoading.style.display = "none"
+        }
+    }
+
+    function playChannel(channel) {
+        currentChannel = channel
+
+        channelPlayerContainer.classList.add("open")
+        document.body.style.overflow = "hidden"
+        channelVideoLoading.style.display = "flex"
+        channelVideoError.style.display = "none"
+
+        // Esperar (con tope de 2.5s) a que el custom element <video-player> esté definido
+        if (window.customElements && typeof window.customElements.get === "function" && !window.customElements.get("video-player")) {
+            let started = false
+            const go = () => {
+                if (started) return
+                started = true
+                startChannelPlayback(channel)
+            }
+            window.customElements.whenDefined("video-player").then(go).catch(go)
+            setTimeout(go, 2500)
+        } else {
+            startChannelPlayback(channel)
+        }
+    }
+
+    function closeChannelPlayer() {
+        channelPlayerContainer.classList.remove("open")
+        document.body.style.overflow = "auto"
+
+        try {
+            channelVideoEl.pause()
+            channelVideoEl.removeAttribute("src")
+            channelVideoEl.load()
+        } catch (e) { /* noop */ }
+        currentChannel = null
+    }
+
+    bindChannelVideoEvents()
+    channelPlayerClose.addEventListener("click", closeChannelPlayer)
+    channelRetryBtn.addEventListener("click", () => {
+        if (currentChannel) playChannel(currentChannel)
+    })
+
+    // ============================================================
+    // Organización por género
+    // ============================================================
+    // ------------------------------------------------------------
+    // "Continuar viendo": historial mixto de películas y series.
+    // Se muestra en ambas pestañas, arriba de Estrenos. Miniatura
+    // horizontal (no póster). Click retoma donde se quedó el usuario.
+    // ------------------------------------------------------------
+    function renderContinueWatching() {
+        if (!window.FGPHistory) return
+        const items = window.FGPHistory.listAll()
+        if (items.length === 0) return
+
+        const section = document.createElement("div")
+        section.className = "genre-section continue-section fadeInUp"
+
+        const header = document.createElement("div")
+        header.className = "section-header"
+        header.innerHTML = `
+            <h2 class="section-title"><i class="fas fa-clock-rotate-left"></i> Continuar viendo</h2>
+            <button class="history-clear-btn" id="history-clear-btn" type="button" aria-label="Vaciar historial">
+                <i class="fas fa-trash-can"></i> Vaciar
+            </button>`
+        section.appendChild(header)
+
+        const row = document.createElement("div")
+        row.className = "continue-row"
+
+        const buildCards = () => {
+            row.innerHTML = ""
+            window.FGPHistory.listAll().forEach(entry => {
+                if (!entry || !entry.id) return
+                const card = document.createElement("article")
+                card.className = "continue-card"
+                card.tabIndex = 0
+
+                const isSerie = entry.type === "series"
+                const resumeLabel = isSerie && entry.seasonIdx !== undefined && entry.epIdx !== undefined
+                    ? `<span class="continue-resume"><i class="fas fa-rotate-right"></i> T${entry.seasonIdx + 1} · E${entry.epIdx + 1}${entry.epTitle ? ` — ${entry.epTitle}` : ""}</span>`
+                    : ""
+                card.innerHTML = `
+                    <div class="continue-thumb-wrap">
+                        <img class="continue-thumb" src="${entry.miniature || entry.post}" alt="${entry.titulo}" loading="lazy">
+                        <span class="continue-type-badge"><i class="fas ${isSerie ? "fa-tv" : "fa-film"}"></i> ${isSerie ? "Serie" : "Película"}</span>
+                        <button class="continue-remove" type="button" aria-label="Quitar de la lista"><i class="fas fa-xmark"></i></button>
+                    </div>
+                    <div class="continue-info">
+                        <h3 class="continue-title">${cleanTitle(entry.titulo)}</h3>
+                        ${resumeLabel}
+                    </div>`
+
+                card.addEventListener("click", e => {
+                    if (e.target.closest(".continue-remove")) return
+                    let url = FGPUrl.buildDetailUrl(entry.type, entry.id)
+                    if (isSerie && entry.seasonIdx !== undefined && entry.epIdx !== undefined) {
+                        url += `&sn=${entry.seasonIdx}&ep=${entry.epIdx}`
+                    }
+                    window.navigateTo(url)
+                })
+                card.addEventListener("keydown", e => {
+                    if (e.key === "Enter") card.click()
+                })
+                card.querySelector(".continue-remove").addEventListener("click", e => {
+                    e.stopPropagation()
+                    window.FGPHistory.remove(entry.type, entry.id)
+                    buildCards()
+                    if (window.FGPHistory.listAll().length === 0) section.remove()
+                })
+
+                row.appendChild(card)
+            })
+        }
+        buildCards()
+
+        header.querySelector("#history-clear-btn").addEventListener("click", () => {
+            window.FGPHistory.clear()
+            section.remove()
+        })
+
+        section.appendChild(row)
+        // Idempotente: si ya existía una fila previa (p. ej. restauración desde
+        // la caché del navegador), se reemplaza; siempre queda arriba del todo
+        const existing = contentContainer.querySelector(".continue-section")
+        if (existing) existing.remove()
+        contentContainer.prepend(section)
+    }
+
+    function shuffleArray(array) {
+        if (!array || array.length === 0) return array
+        const shuffled = [...array]
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+        }
+        return shuffled
+    }
+
+    function renderSkeletonRows(count = 2) {
+        for (let i = 0; i < count; i++) {
+            const row = document.createElement("div")
+            row.className = "skeleton-row"
+            row.innerHTML = '<div class="skeleton-card"></div>'.repeat(8)
+            contentContainer.appendChild(row)
+        }
+    }
+
+    function clearSkeletons() {
+        contentContainer.querySelectorAll(".skeleton-row").forEach(el => el.remove())
+    }
+
+    async function organizeContentByGenre(type) {
+        const apiUrl = type === "movies" ? apiUrlMovies : apiUrlSeries
+        renderSkeletonRows(2)
+
+        // Estrenos (año actual o anterior)
+        try {
+            const currentYear = new Date().getFullYear()
+            let releaseContent = []
+
+            const cacheKey = `releases_${type}_${currentYear}`
+            let currentYearData = getFromCache(cacheKey)
+
+            if (!currentYearData) {
+                currentYearData = await fetchWithCache(`${apiUrl}?search=ano=${currentYear}&limit=20&random=true`)
+                saveToCache(cacheKey, currentYearData)
+            }
+
+            if (currentYearData.success && currentYearData.data.length > 0) {
+                releaseContent = currentYearData.data
+            } else {
+                const previousYear = currentYear - 1
+                const previousCacheKey = `releases_${type}_${previousYear}`
+                let previousYearData = getFromCache(previousCacheKey)
+
+                if (!previousYearData) {
+                    previousYearData = await fetchWithCache(`${apiUrl}?search=ano=${previousYear}&limit=20&random=true`)
+                    saveToCache(previousCacheKey, previousYearData)
+                }
+
+                if (previousYearData.success && previousYearData.data.length > 0) {
+                    releaseContent = previousYearData.data
+                }
+            }
+
+            if (releaseContent.length > 0) {
+                rememberItems(type, releaseContent)
+                const yearShown = releaseContent[0].ano || currentYear
+                createGenreSection(`Estrenos ${yearShown}`, shuffleArray(releaseContent), "fas fa-fire", type)
+                clearSkeletons()
+            }
+        } catch (error) { /* continuar con géneros */ }
+
+        const initialGenres = allGenres.slice(0, 3)
+        const remainingGenres = allGenres.slice(3)
+
+        await Promise.all(initialGenres.map(genre => loadGenreContent(genre, type)))
+        remainingGenres.forEach(genre => loadGenreContent(genre, type))
+    }
+
+    async function loadGenreContent(genre, type) {
+        if (genreCache[type][genre]) {
+            createGenreSection(genre, shuffleArray(genreCache[type][genre]), getGenreIcon(genre), type)
+            return
+        }
+
+        try {
+            const apiUrl = type === "movies" ? apiUrlMovies : apiUrlSeries
+            const data = await fetchWithCache(`${apiUrl}?search=generos=${encodeURIComponent(genre)}&limit=20&random=true`)
+
+            if (data.success && data.data.length > 0) {
+                genreCache[type][genre] = data.data
+                rememberItems(type, data.data)
+                createGenreSection(genre, shuffleArray(data.data), getGenreIcon(genre), type)
+            }
+        } catch (error) { /* omitir género */ }
+    }
+
+    function createGenreSection(genreTitle, content, icon = "fas fa-film", type, wideOverride = null) {
+        // Mientras se construye la vista de una pestaña, guardar qué filas
+        // la componen para poder restaurarla al instante más tarde
+        const sectionIndex = genreCollector ? genreCollector.length : 0
+        const sectionWide = wideOverride !== null ? wideOverride : sectionIndex % 4 === 3
+        if (genreCollector) genreCollector.push({ genreTitle, content: content.slice(), icon, wide: sectionWide })
+        // La mezcla es por CATEGORÍA completa: 3 filas de pósters y luego una
+        // fila entera de miniaturas (el ciclo se repite)
         const section = document.createElement("div")
         section.className = "genre-section fadeInUp"
 
@@ -904,19 +965,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const prevBtn = document.createElement("button")
         prevBtn.className = "carousel-btn"
+        prevBtn.setAttribute("aria-label", "Anterior")
         prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>'
 
         const nextBtn = document.createElement("button")
         nextBtn.className = "carousel-btn"
+        nextBtn.setAttribute("aria-label", "Siguiente")
         nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>'
-
-        const seeAll = document.createElement("a")
-        seeAll.className = "see-all"
-        seeAll.href = "#"
 
         carouselNav.appendChild(prevBtn)
         carouselNav.appendChild(nextBtn)
-        carouselNav.appendChild(seeAll)
 
         sectionHeader.appendChild(title)
         sectionHeader.appendChild(carouselNav)
@@ -924,89 +982,70 @@ document.addEventListener("DOMContentLoaded", () => {
         const row = document.createElement("div")
         row.className = "movies-row"
 
-        content.slice(0, 20).forEach((item, index) => {
+        content.slice(0, 20).forEach(item => {
             const card = document.createElement("div")
-            card.className = "movie-card"
+            const rating = stableRating(getItemId(item))
 
-            const rating = (Math.random() * 2 + 7).toFixed(1)
-            const contentType = type
+            if (sectionWide) {
+                // Fila de miniaturas: tarjetas horizontales 16:9 idénticas a
+                // las de "Continuar viendo" (mismo CSS, no el de los pósters)
+                card.className = "continue-card"
+                card.innerHTML = `
+                    <div class="continue-thumb-wrap">
+                        <img class="continue-thumb" src="${item.miniature || item.post}" alt="${cleanTitle(item.titulo)}" loading="lazy">
+                        <span class="continue-type-badge"><i class="fas ${type === "movies" ? "fa-film" : "fa-tv"}"></i> ${type === "movies" ? "Película" : "Serie"}</span>
+                    </div>
+                    <div class="continue-info">
+                        <h3 class="continue-title">${cleanTitle(item.titulo)}</h3>
+                        <span class="genre-mini-meta"><i class="fas fa-star"></i> ${rating} · <i class="far fa-calendar-alt"></i> ${item.ano || ""}</span>
+                    </div>`
+            } else {
+                card.className = "movie-card"
+                card.innerHTML = `
+                    <div class="movie-poster-container">
+                        <img class="movie-poster" src="${item.post}" alt="${cleanTitle(item.titulo)}" loading="lazy">
+                        <div class="movie-overlay">
+                            <button class="movie-play-btn" aria-label="Ver ${cleanTitle(item.titulo)}">
+                                <i class="fas fa-play"></i>
+                            </button>
+                        </div>
+                        <span class="movie-type"><i class="fas ${type === "movies" ? "fa-film" : "fa-tv"}"></i> ${type === "movies" ? "Película" : "Serie"}</span>
+                    </div>
+                    <div class="movie-info">
+                        <h3 class="movie-title">${cleanTitle(item.titulo)}</h3>
+                        <div class="movie-meta">
+                            <div class="movie-rating">
+                                <i class="fas fa-star"></i>
+                                <span>${rating}</span>
+                            </div>
+                            <div class="movie-year">
+                                <i class="far fa-calendar-alt"></i>
+                                <span>${item.ano || ""}</span>
+                            </div>
+                        </div>
+                    </div>`
+            }
 
-            card.innerHTML = `
-            <div class="movie-poster-container">
-            <img class="movie-poster" src="${item.post}" alt="${item.titulo}" loading="lazy">
-            <div class="movie-overlay">
-            <button class="movie-play-btn">
-            <i class="fas fa-play"></i>
-            </button>
-            </div>
-            <div class="movie-type">${contentType === "movies" ? "PELÍCULA": "SERIE"}</div>
-            </div>
-            <div class="movie-info">
-            <h3 class="movie-title">${item.titulo}</h3>
-            <div class="movie-meta">
-            <div class="movie-rating">
-            <i class="fas fa-star"></i>
-            <span>${rating}</span>
-            </div>
-            <div class="movie-year">
-            <i class="far fa-calendar-alt"></i>
-            <span>${item.ano}</span>
-            </div>
-            </div>
-            </div>
-            `
-
-            card.addEventListener("click", () => {
-                window.openContentModalByContent(contentType, item)
-            })
-
+            card.addEventListener("click", () => openDetails(type, item))
             row.appendChild(card)
         })
 
-        prevBtn.addEventListener("click", () => {
-            row.scrollBy({
-                left: -600,
-                behavior: "smooth",
-            })
-        })
-
-        nextBtn.addEventListener("click", () => {
-            row.scrollBy({
-                left: 600,
-                behavior: "smooth",
-            })
-        })
+        prevBtn.addEventListener("click", () => row.scrollBy({ left: -600, behavior: "smooth" }))
+        nextBtn.addEventListener("click", () => row.scrollBy({ left: 600, behavior: "smooth" }))
 
         section.appendChild(sectionHeader)
         section.appendChild(row)
         contentContainer.appendChild(section)
     }
 
-    // Función para hacer scroll suave hasta arriba
     function scrollToTop() {
-        if ("scrollBehavior" in document.documentElement.style) {
-            window.scrollTo({
-                top: 0,
-                behavior: "smooth",
-            })
-        } else {
-            const scrollDuration = 500
-            const scrollStep = -window.scrollY / (scrollDuration / 15)
-
-            const scrollInterval = setInterval(() => {
-                if (window.scrollY !== 0) {
-                    window.scrollBy(0, scrollStep)
-                } else {
-                    clearInterval(scrollInterval)
-                }
-            },
-                15)
-        }
+        window.scrollTo({ top: 0, behavior: "smooth" })
     }
 
-    // Función para buscar contenido
+    // ============================================================
+    // Búsqueda
+    // ============================================================
     async function searchContent(query) {
-        isLoading = true
         isSearchActive = true
         loadingElement.style.display = "flex"
         contentContainer.innerHTML = ""
@@ -1022,412 +1061,121 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (hasMovies || hasSeries) {
                 if (hasMovies) {
-                    searchResultsMovies = dataMovies.data
+                    rememberItems("movies", dataMovies.data)
                     createGenreSection(`Películas para: "${query}"`, dataMovies.data, "fas fa-film", "movies")
                 }
-
                 if (hasSeries) {
-                    searchResultsSeries = dataSeries.data
+                    rememberItems("series", dataSeries.data)
                     createGenreSection(`Series para: "${query}"`, dataSeries.data, "fas fa-tv", "series")
                 }
 
                 const backButton = document.createElement("div")
+                backButton.style.textAlign = "center"
+                backButton.style.margin = "30px 0"
                 backButton.innerHTML = `
-                <div style="text-align: center; margin: 30px 0;">
-                <button class="btn btn-primary" onclick="volverAlInicio()"
-                style="padding: 10px 20px; font-size: 1rem; border-radius: 0.5rem;">
-                <i class="fas fa-home"></i> Volver al inicio
-                </button>
-                </div>
-                `
+                    <button class="btn btn-glass">
+                        <i class="fas fa-arrow-left"></i> Volver al inicio
+                    </button>`
+                backButton.querySelector("button").addEventListener("click", volverAlInicio)
                 contentContainer.appendChild(backButton)
             } else {
                 contentContainer.innerHTML = `
-                <div class="fadeInUp" style="text-align: center; padding: 3rem 1rem;">
-                <i class="fas fa-search" style="font-size: 3rem; color: var(--accent-color); margin-bottom: 1rem;"></i>
-                <h2>No se encontraron resultados para "${query}"</h2>
-                <p style="color: var(--text-secondary); margin: 1rem 0;">Intenta con otro término de búsqueda o explora nuestras categorías.</p>
-                <button class="btn btn-primary" onclick="volverAlInicio()"
-                style="padding: 10px 20px; font-size: 1rem; border-radius: 0.5rem;">
-                <i class="fas fa-home"></i> Volver al inicio
-                </button>
-                </div>
-                `
+                    <div class="empty-state fadeInUp">
+                        <i class="fas fa-search"></i>
+                        <h2>No se encontraron resultados para "${query}"</h2>
+                        <p>Intenta con otro término de búsqueda o explora nuestras categorías.</p>
+                        <button class="btn btn-primary" id="back-home-btn">
+                            <i class="fas fa-home"></i> Volver al inicio
+                        </button>
+                    </div>`
+                document.getElementById("back-home-btn").addEventListener("click", volverAlInicio)
             }
         } catch (error) {
-            // console.error("Error al buscar contenido:", error)
-            contentContainer.innerHTML = "<p>Error al buscar el contenido</p>"
+            contentContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-wifi"></i>
+                    <h2>Error al buscar</h2>
+                    <p>Por favor, intenta de nuevo más tarde.</p>
+                </div>`
         } finally {
             isLoading = false
             loadingElement.style.display = "none"
-            tabs.style.display = "none"
         }
     }
 
-    // Función para volver al inicio
-    window.volverAlInicio = () => {
+    function volverAlInicio() {
         loadContent(currentContentType)
-        tabs.style.display = "flex"
-        if (currentContentType !== "channels") {
-            heroSection.style.display = "block"
-        }
         searchInput.value = ""
         isSearchActive = false
     }
+    window.volverAlInicio = volverAlInicio
 
-    // Función para abrir el modal con el objeto de contenido directamente
-    window.openContentModalByContent = (type, content) => {
-        if (typeof content === 'string') {
-            content = JSON.parse(content.replace(/&quot;/g, '"'))
-        }
-        if (!content) return
-
-        document.getElementById("modal-backdrop").src = content.miniature || content.post
-        document.getElementById("modal-poster").src = content.post
-        document.getElementById("modal-title").textContent = content.titulo || "Sin título"
-        document.getElementById("modal-year").querySelector("span").textContent = content.ano || "Año desconocido"
-
-        if (content.duracion) {
-            document.getElementById("modal-duration").style.display = "inline-flex"
-            document.getElementById("modal-duration").querySelector("span").textContent = content.duracion
-        } else {
-            document.getElementById("modal-duration").style.display = "none"
-        }
-
-        document.getElementById("modal-rating").querySelector("span").textContent = (Math.random() * 2 + 7).toFixed(1)
-        document.getElementById("modal-type").querySelector("span").textContent = type === "movies" ? "Película": "Serie"
-        document.getElementById("modal-description").textContent = content.descripcion || "Sin descripción disponible."
-
-        document.getElementById("movie-servers-section").style.display = type === "movies" ? "block": "none"
-        document.getElementById("series-seasons-section").style.display = type === "series" ? "block": "none"
-
-        const genresContainer = document.getElementById("modal-genres")
-        genresContainer.innerHTML = ""
-
-        if (content.generos) {
-            const genres = typeof content.generos === "string" ? content.generos.split(" - "): content.generos
-            genres.forEach((genre) => {
-                const genreTag = document.createElement("span")
-                genreTag.className = "genre-tag"
-                genreTag.textContent = genre
-                genresContainer.appendChild(genreTag)
-            })
-        }
-
-        const castContainer = document.getElementById("cast-list")
-        castContainer.innerHTML = ""
-
-        if (content.actores && content.actores.length > 0) {
-            content.actores.slice(0, 10).forEach((actor) => {
-                const castMember = document.createElement("span")
-                castMember.className = "cast-member"
-                castMember.innerHTML = `<i class="fas fa-user-alt"></i> ${actor}`
-                castContainer.appendChild(castMember)
-            })
-
-            if (content.actores.length > 10) {
-                const moreCast = document.createElement("span")
-                moreCast.className = "cast-member"
-                moreCast.innerHTML = `<i class="fas fa-users"></i> +${content.actores.length - 10} más`
-                castContainer.appendChild(moreCast)
-            }
-        } else {
-            const noCast = document.createElement("p")
-            noCast.textContent = "Información del reparto no disponible."
-            noCast.style.color = "var(--text-muted)"
-            castContainer.appendChild(noCast)
-        }
-
-        if (type === "movies") {
-            loadMovieServers(content)
-        } else {
-            loadSeriesSeasons(content)
-        }
-
-        movieModal.style.display = "block"
-        document.body.style.overflow = "hidden"
-    }
-
-    // Función para cargar servidores de películas
-    function loadMovieServers(movie) {
-        const serverTabsContainer = document.getElementById("server-tabs")
-        const serverContentsContainer = document.getElementById("server-contents")
-        serverTabsContainer.innerHTML = ""
-        serverContentsContainer.innerHTML = ""
-
-        if (movie.servidores && movie.servidores.length > 0) {
-            const serversByLanguage = {}
-            movie.servidores.forEach((server) => {
-                if (!serversByLanguage[server.idioma]) {
-                    serversByLanguage[server.idioma] = []
-                }
-                serversByLanguage[server.idioma].push(server)
-            })
-
-            let firstTab = true
-            for (const [language, servers] of Object.entries(serversByLanguage)) {
-                const tab = document.createElement("div")
-                tab.className = `server-tab ${firstTab ? "active": ""}`
-
-                let langIcon = "fas fa-globe"
-                if (language.toLowerCase().includes("español") || language.toLowerCase().includes("latino")) {
-                    langIcon = "fas fa-language"
-                } else if (language.toLowerCase().includes("inglés") || language.toLowerCase().includes("english")) {
-                    langIcon = "fas fa-language"
-                } else if (language.toLowerCase().includes("subtitulado")) {
-                    langIcon = "fas fa-closed-captioning"
-                }
-
-                tab.innerHTML = `<i class="${langIcon}"></i> ${language}`
-
-                tab.addEventListener("click", () => {
-                    document.querySelectorAll(".server-tab").forEach((t) => t.classList.remove("active"))
-                    tab.classList.add("active")
-                    document.querySelectorAll(".server-content").forEach((c) => c.classList.remove("active"))
-                    document.getElementById(`server-content-${language.replace(/\s+/g, "-")}`).classList.add("active")
-                })
-                serverTabsContainer.appendChild(tab)
-
-                const content = document.createElement("div")
-                content.className = `server-content ${firstTab ? "active": ""}`
-                content.id = `server-content-${language.replace(/\s+/g, "-")}`
-
-                servers.forEach((server) => {
-                    const serverOption = document.createElement("div")
-                    serverOption.className = "server-option"
-
-                    let serverIcon = "fas fa-server"
-                    if (server.nombre.toLowerCase().includes("mega")) {
-                        serverIcon = "fas fa-cloud-download-alt"
-                    } else if (server.nombre.toLowerCase().includes("google")) {
-                        serverIcon = "fab fa-google-drive"
-                    } else if (server.nombre.toLowerCase().includes("fembed")) {
-                        serverIcon = "fas fa-play-circle"
-                    }
-
-                    serverOption.innerHTML = `
-                    <div class="server-info">
-                    <span class="server-name"><i class="${serverIcon}"></i> ${server.nombre}</span>
-                    <div class="server-meta">
-                    <span><i class="fas fa-video"></i> ${server.calidad}</span>
-                    <span><i class="fas fa-closed-captioning"></i> ${server.idioma}</span>
-                    <span><i class="fas fa-file-video"></i> ${server.tipo}</span>
-                    </div>
-                    </div>
-                    <button class="watch-btn" data-url="${server.url}" data-title="${movie.titulo}">
-                    <i class="fas fa-play"></i> Ver ahora
-                    </button>
-                    `
-                    content.appendChild(serverOption)
-                })
-
-                serverContentsContainer.appendChild(content)
-                firstTab = false
-            }
-
-            document.querySelectorAll(".watch-btn").forEach((btn) => {
-                btn.addEventListener("click", (e) => {
-                    const url = e.currentTarget.getAttribute("data-url")
-                    if (url) {
-                        window.open(url, "_blank")
-                    }
-                })
-            })
-        } else {
-            serverTabsContainer.innerHTML = "<p>No hay servidores disponibles para esta película.</p>"
-        }
-    }
-
-    // Función para cargar temporadas de series
-    function loadSeriesSeasons(serie) {
-        const seasonsTabsContainer = document.getElementById("seasons-tabs")
-        const seasonsContentsContainer = document.getElementById("seasons-contents")
-        seasonsTabsContainer.innerHTML = ""
-        seasonsContentsContainer.innerHTML = ""
-
-        if (serie.temporadas && serie.temporadas.length > 0) {
-            let firstTab = true
-            serie.temporadas.forEach((season) => {
-                const tab = document.createElement("div")
-                tab.className = `season-tab ${firstTab ? "active": ""}`
-                tab.innerHTML = `<i class="fas fa-layer-group"></i> ${season.titulo}`
-
-                tab.addEventListener("click", () => {
-                    document.querySelectorAll(".season-tab").forEach((t) => t.classList.remove("active"))
-                    tab.classList.add("active")
-                    document.querySelectorAll(".season-content").forEach((c) => c.classList.remove("active"))
-                    document.getElementById(`season-content-${season.numero}`).classList.add("active")
-                })
-                seasonsTabsContainer.appendChild(tab)
-
-                const content = document.createElement("div")
-                content.className = `season-content ${firstTab ? "active": ""}`
-                content.id = `season-content-${season.numero}`
-
-                const episodeList = document.createElement("div")
-                episodeList.className = "episode-list"
-
-                if (season.episodios && season.episodios.length > 0) {
-                    season.episodios.forEach((episode) => {
-                        const episodeItem = document.createElement("div")
-                        episodeItem.className = "episode-item"
-
-                        const episodeHeader = document.createElement("div")
-                        episodeHeader.className = "episode-header"
-
-                        episodeHeader.innerHTML = `
-                        <img class="episode-thumbnail" src="${episode.miniatura || episode.imagen || serie.post}" alt="${episode.titulo}">
-                        <div class="episode-info">
-                        <div class="episode-title">
-                        ${episode.titulo}
-                        <span class="episode-number">${episode.numero_completo}</span>
-                        </div>
-                        <div class="episode-description">${episode.descripcion || "Sin descripción disponible."}</div>
-                        </div>
-                        `
-
-                        episodeItem.appendChild(episodeHeader)
-
-                        if (episode.servidores && episode.servidores.length > 0) {
-                            const episodeServers = document.createElement("div")
-                            episodeServers.className = "episode-servers"
-
-                            episode.servidores.forEach((server) => {
-                                const serverBtn = document.createElement("div")
-                                serverBtn.className = "episode-server"
-
-                                let serverIcon = "fas fa-server"
-                                if (server.nombre.toLowerCase().includes("mega")) {
-                                    serverIcon = "fas fa-cloud-download-alt"
-                                } else if (server.nombre.toLowerCase().includes("google")) {
-                                    serverIcon = "fab fa-google-drive"
-                                } else if (server.nombre.toLowerCase().includes("hyper")) {
-                                    serverIcon = "fas fa-play-circle"
-                                }
-
-                                serverBtn.innerHTML = `<i class="${serverIcon}"></i> ${server.nombre} - ${server.idioma}`
-
-                                serverBtn.addEventListener("click", () => {
-                                    window.open(server.url || server.shorter, "_blank");
-                                })
-
-                                episodeServers.appendChild(serverBtn)
-                            })
-
-                            episodeItem.appendChild(episodeServers)
-                        } else {
-                            const noServers = document.createElement("div")
-                            noServers.className = "episode-servers"
-                            noServers.innerHTML = "<p>No hay servidores disponibles para este episodio.</p>"
-                            episodeItem.appendChild(noServers)
-                        }
-
-                        episodeList.appendChild(episodeItem)
-                    })
-                } else {
-                    episodeList.innerHTML = "<p>No hay episodios disponibles para esta temporada.</p>"
-                }
-
-                content.appendChild(episodeList)
-                seasonsContentsContainer.appendChild(content)
-                firstTab = false
-            })
-        } else {
-            seasonsTabsContainer.innerHTML = "<p>No hay temporadas disponibles para esta serie.</p>"
-        }
-    }
-
-    // Event listeners
-    modalClose.addEventListener("click", () => {
-        movieModal.style.display = "none"
-        document.body.style.overflow = "auto"
+    // Volver desde otra página usando la caché del navegador (BFCache): la
+    // página se restaura tal cual estaba, SIN volver a ejecutar loadContent,
+    // así que la fila de "Continuar viendo" quedaba desactualizada o faltaba.
+    // Al restaurarse, refrescamos la fila y el estado del body.
+    window.addEventListener("pageshow", e => {
+        document.body.style.overflow = ""
+        if (!e.persisted) return
+        try {
+            if (currentContentType !== "channels") renderContinueWatching()
+        } catch (err) {}
     })
 
-    playerClose.addEventListener("click", () => {
-        playerContainer.style.display = "none"
-        playerIframe.src = ""
-        document.body.style.overflow = "auto"
-    })
-
-    window.addEventListener("click", (e) => {
-        if (e.target === movieModal) {
-            movieModal.style.display = "none"
-            document.body.style.overflow = "auto"
-        }
-        if (e.target === playerContainer) {
-            playerContainer.style.display = "none"
-            playerIframe.src = ""
-            document.body.style.overflow = "auto"
+    searchBtn.addEventListener("click", () => {
+        const query = searchInput.value.trim()
+        if (query) {
+            searchContent(query)
+        } else {
+            volverAlInicio()
         }
     })
 
-    searchBtn.addEventListener("click",
-        () => {
+    searchInput.addEventListener("keypress", e => {
+        if (e.key === "Enter") {
             const query = searchInput.value.trim()
             if (query) {
                 searchContent(query)
             } else {
-                loadContent(currentContentType)
-                if (currentContentType !== "channels") {
-                    heroSection.style.display = "block"
-                }
+                volverAlInicio()
             }
-        })
+        }
+    })
 
-    searchInput.addEventListener("keypress",
-        (e) => {
-            if (e.key === "Enter") {
-                const query = searchInput.value.trim()
-                if (query) {
-                    searchContent(query)
-                } else {
-                    loadContent(currentContentType)
-                    if (currentContentType !== "channels") {
-                        heroSection.style.display = "block"
-                    }
-                }
-            }
-        })
-
-    // Event listeners para las pestañas de navegación
-    navTabs.forEach((tab) => {
+    navTabs.forEach(tab => {
         tab.addEventListener("click", () => {
-            navTabs.forEach((t) => t.classList.remove("active"))
+            navTabs.forEach(t => t.classList.remove("active"))
             tab.classList.add("active")
             const contentType = tab.getAttribute("data-content")
 
-            // Limpiar cache si cambiamos de tipo de contenido
-            genreCache[contentType] = {}
-
+            // Sin limpiar cachés: cambiar de pestaña reutiliza la vista
+            // construida (viewData) y no vuelve a cargar todo el index
+            if (contentType !== "channels") {
+                currentCountryChannels = []
+            }
             loadContent(contentType)
         })
     })
 
-    // Inicializar la aplicación
-    initializeApp();
-
-    // Elementos para los modales adicionales
+    // ============================================================
+    // Modal de géneros
+    // ============================================================
     const genresModal = document.getElementById("genres-modal")
     const genresModalClose = document.getElementById("genres-modal-close")
-    const genresLink = document.getElementById("genres-link")
 
-    // Función para cargar los géneros en el modal
-    async function loadGenresModal() {
+    function loadGenresModal() {
         const genresGrid = document.querySelector(".genres-grid")
         genresGrid.innerHTML = ""
 
-        allGenres.forEach((genre) => {
+        allGenres.forEach(genre => {
             const genreCard = document.createElement("div")
             genreCard.className = "genre-card"
 
             const icon = getGenreIcon(genre)
 
             genreCard.innerHTML = `
-            <div class="genre-icon">
-            <i class="${icon}"></i>
-            </div>
-            <div class="genre-name">${genre}</div>
-            `
+                <div class="genre-icon"><i class="${icon}"></i></div>
+                <div class="genre-name">${genre}</div>`
 
             genreCard.addEventListener("click", async () => {
                 genresModal.style.display = "none"
@@ -1438,50 +1186,48 @@ document.addEventListener("DOMContentLoaded", () => {
                 loadingElement.style.display = "flex"
 
                 try {
-                    const apiUrl = getApiUrl(currentContentType)
+                    const apiUrl = currentContentType === "movies" ? apiUrlMovies : apiUrlSeries
                     const cacheKey = `genre_detail_${currentContentType}_${genre}`
                     let data = getFromCache(cacheKey)
 
                     if (!data) {
                         const response = await fetch(`${apiUrl}?search=generos=${encodeURIComponent(genre)}&limit=50`)
                         data = await response.json()
-                        if (data.success) {
-                            saveToCache(cacheKey, data)
-                        }
+                        if (data.success) saveToCache(cacheKey, data)
                     }
 
                     loadingElement.style.display = "none"
 
                     if (data.success && data.data.length > 0) {
-                        createGenreSection(`${genre}`, data.data, icon, currentContentType)
+                        rememberItems(currentContentType, data.data)
+                        createGenreSection(genre, data.data, icon, currentContentType)
 
                         const backButton = document.createElement("div")
-                        backButton.innerHTML = `
-                        <div style="text-align: center; margin: 30px 0;">
-                        <button class="btn btn-primary" onclick="volverAlInicio()"
-                        style="padding: 10px 20px; font-size: 1rem; border-radius: 0.5rem;">
-                        <i class="fas fa-home"></i> Volver al inicio
-                        </button>
-                        </div>
-                        `
+                        backButton.style.textAlign = "center"
+                        backButton.style.margin = "30px 0"
+                        backButton.innerHTML = `<button class="btn btn-glass"><i class="fas fa-home"></i> Volver al inicio</button>`
+                        backButton.querySelector("button").addEventListener("click", volverAlInicio)
                         contentContainer.appendChild(backButton)
                     } else {
                         contentContainer.innerHTML = `
-                        <div class="fadeInUp" style="text-align: center; padding: 3rem 1rem;">
-                        <i class="${icon}" style="font-size: 3rem; color: var(--accent-color); margin-bottom: 1rem;"></i>
-                        <h2>No se encontraron resultados para "${genre}"</h2>
-                        <p style="color: var(--text-secondary); margin: 1rem 0;">Intenta con otro género o explora nuestras categorías.</p>
-                        <button class="btn btn-primary" onclick="volverAlInicio()"
-                        style="padding: 10px 20px; font-size: 1rem; border-radius: 0.5rem;">
-                        <i class="fas fa-home"></i> Volver al inicio
-                        </button>
-                        </div>
-                        `
+                            <div class="empty-state fadeInUp">
+                                <i class="${icon}"></i>
+                                <h2>No se encontraron resultados para "${genre}"</h2>
+                                <p>Intenta con otro género o explora nuestras categorías.</p>
+                                <button class="btn btn-primary" id="back-home-btn2">
+                                    <i class="fas fa-home"></i> Volver al inicio
+                                </button>
+                            </div>`
+                        document.getElementById("back-home-btn2").addEventListener("click", volverAlInicio)
                     }
                 } catch (error) {
-                    // console.error("Error cargando género:", error)
                     loadingElement.style.display = "none"
-                    contentContainer.innerHTML = `<p>Error al cargar el contenido del género.</p>`
+                    contentContainer.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-wifi"></i>
+                            <h2>Error al cargar el género</h2>
+                            <p>Por favor, intenta de nuevo más tarde.</p>
+                        </div>`
                 }
             })
 
@@ -1489,38 +1235,60 @@ document.addEventListener("DOMContentLoaded", () => {
         })
     }
 
-    if (feedbackBtn) {
-        feedbackBtn.addEventListener("click", () => {
-            const email = document.querySelector(".newsletter-input").value.trim()
-            if (email) {
-                window.location.href = `mailto:filmsgapsplusdevelopers@gmail.com?subject=Feedback%20FilmsGapsPlus&body=Mi%20correo:%20${email}%0A%0AMi%20feedback:%20`
-            } else {
-                window.open("mailto:filmsgapsplusdevelopers@gmail.com?subject=Feedback%20FilmsGapsPlus", "_blank")
+    feedbackBtn.addEventListener("click", () => {
+        const email = document.querySelector(".newsletter-input").value.trim()
+        if (email) {
+            window.location.href = `mailto:filmsgapsplusdevelopers@gmail.com?subject=Feedback%20FilmsGapsPlus&body=Mi%20correo:%20${email}%0A%0AMi%20feedback:%20`
+        } else {
+            window.open("mailto:filmsgapsplusdevelopers@gmail.com?subject=Feedback%20FilmsGapsPlus", "_blank")
+        }
+    })
+
+    function abrirModalGeneros() {
+        loadGenresModal()
+        genresModal.style.display = "block"
+        document.body.style.overflow = "hidden"
+    }
+
+    // El enlace del footer dispara este evento en el index; en otras páginas
+    // navega hacia index.html#generos y aquí se abre al aterrizar
+    document.addEventListener("fgp:open-genres", abrirModalGeneros)
+    if (location.hash === "#generos" || location.hash === "#genres") {
+        const abrirCuandoListo = intentos => {
+            if (Array.isArray(allGenres) && allGenres.length > 0) {
+                abrirModalGeneros()
+                history.replaceState(null, "", location.pathname)
+            } else if (intentos < 40) {
+                setTimeout(() => abrirCuandoListo(intentos + 1), 150)
             }
-        })
+        }
+        abrirCuandoListo(0)
     }
 
-    // Event listeners para los modales
-    if (genresLink) {
-        genresLink.addEventListener("click", (e) => {
-            e.preventDefault()
-            loadGenresModal()
-            genresModal.style.display = "block"
-            document.body.style.overflow = "hidden"
-        })
-    }
+    genresModalClose.addEventListener("click", () => {
+        genresModal.style.display = "none"
+        document.body.style.overflow = "auto"
+    })
 
-    if (genresModalClose) {
-        genresModalClose.addEventListener("click", () => {
-            genresModal.style.display = "none"
-            document.body.style.overflow = "auto"
-        })
-    }
-
-    window.addEventListener("click", (e) => {
+    window.addEventListener("click", e => {
         if (e.target === genresModal) {
             genresModal.style.display = "none"
             document.body.style.overflow = "auto"
         }
     })
+
+    // Cerrar reproductor de canal con Escape
+    document.addEventListener("keydown", e => {
+        if (e.key === "Escape") {
+            if (channelPlayerContainer.classList.contains("open")) closeChannelPlayer()
+            if (countriesModal.style.display === "block") closeCountriesModal()
+            if (genresModal.style.display === "block") {
+                genresModal.style.display = "none"
+                document.body.style.overflow = "auto"
+            }
+        }
+    })
+
+    // Inicializar la aplicación
+    initializeApp()
 })

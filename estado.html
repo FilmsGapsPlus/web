@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estado del Servicio - FilmsGapsPlus</title>
+    <link rel="icon" href="img/icon_filmsgapsplus.png" type="image/png">
+    <meta name="description" content="Estado en tiempo real del servicio y backend de FilmsGapsPlus: uptime, tiempos de respuesta e incidencias recientes.">
+    <meta name="author" content="FilmsGapsPlus">
+    <meta property="og:title" content="Estado del Servicio - FilmsGapsPlus">
+    <meta property="og:description" content="Uptime, latencia e incidencias del backend de FilmsGapsPlus en tiempo real.">
+    <meta property="og:image" content="img/icon_filmsgapsplus.png">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#050506">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css?v=20260823">
+    <style>
+        /* Página de estado — estilos específicos (usa los tokens del proyecto) */
+        .status-main {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 1rem clamp(1rem, 4vw, 2.5rem) 3rem;
+            display: none;
+        }
+        .status-card {
+            background: var(--card-glass);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            backdrop-filter: var(--blur-light);
+            -webkit-backdrop-filter: var(--blur-light);
+            box-shadow: var(--glass-specular);
+            padding: 1.5rem;
+        }
+        .status-hero {
+            display: flex;
+            align-items: center;
+            gap: 1.1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.4rem;
+            border-left: 4px solid #22c55e;
+        }
+        .status-hero.status-danger { border-left-color: #ef4444; }
+        .status-hero.status-warning { border-left-color: #f59e0b; }
+        .status-hero.status-paused,
+        .status-hero.status-unknown { border-left-color: #71717a; }
+        #status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.7rem;
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+        .status-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #71717a;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .dot-success { background: #22c55e; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); animation: statusPulse 2s infinite; }
+        .dot-danger { background: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); animation: statusPulse 2s infinite; }
+        .dot-warning { background: #f59e0b; }
+        @keyframes statusPulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45); }
+            70% { box-shadow: 0 0 0 12px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        .status-hero-sub {
+            width: 100%;
+        }
+        #status-sub {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        #status-updated {
+            color: var(--text-muted);
+            font-size: 0.76rem;
+            margin-top: 0.25rem;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.4rem;
+        }
+        .uptime-card {
+            background: var(--card-glass);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            padding: 1.15rem 1.3rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            box-shadow: var(--glass-specular);
+        }
+        .uptime-value {
+            font-size: 1.7rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: #22c55e;
+        }
+        .uptime-label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status-section-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .status-section-title i { color: var(--accent-red); font-size: 0.8rem; }
+        .resp-stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 0.8rem;
+            margin-bottom: 1.1rem;
+        }
+        .resp-stat {
+            text-align: center;
+            padding: 0.8rem 0.5rem;
+            border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--glass-border);
+        }
+        .resp-stat b { display: block; font-size: 1.05rem; }
+        .resp-stat span { color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; }
+        .spark-svg { width: 100%; height: 120px; display: block; }
+        .spark-line { fill: none; stroke: #22c55e; stroke-width: 2; }
+        .spark-range { color: var(--text-muted); font-size: 0.74rem; margin-top: 0.5rem; }
+        .status-empty { color: var(--text-muted); font-size: 0.82rem; }
+        .history-bars {
+            display: flex;
+            align-items: stretch;
+            gap: 2px;
+            height: 46px;
+            margin-bottom: 0.6rem;
+        }
+        .history-bar {
+            flex: 1 1 0;
+            min-width: 2px;
+            border-radius: 2px;
+            opacity: 0.9;
+        }
+        .history-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 0.74rem;
+        }
+        .history-legend { display: flex; gap: 1rem; }
+        .history-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+        .legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+        .events-list { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+        .event-item { display: flex; gap: 0.85rem; align-items: flex-start; }
+        .event-icon {
+            width: 32px; height: 32px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; flex-shrink: 0;
+        }
+        .ev-up { color: #22c55e; background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.35); }
+        .ev-down { color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); }
+        .event-title { font-size: 0.86rem; font-weight: 600; }
+        .event-date { color: var(--text-muted); font-size: 0.74rem; }
+        .status-loading, .status-error {
+            max-width: 1080px;
+            margin: 3rem auto;
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+        .status-error i { font-size: 2rem; color: var(--accent-red); }
+        .status-loading i { font-size: 1.6rem; color: var(--accent-red); animation: fa-spin 1.2s linear infinite; }
+        @media (max-width: 768px) {
+            #status-pill { font-size: 1.1rem; }
+            .status-card { padding: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+    <header class="legal-header">
+        <a class="logo" href="/">FilmsGaps <span>Plus</span></a>
+        <a class="btn btn-glass" href="/"><i class="fas fa-home"></i> Inicio</a>
+    </header>
+
+    <main class="legal-main" style="margin-bottom:0;">
+        <section class="doc-hero">
+            <span class="doc-eyebrow"><i class="fas fa-signal"></i> Monitorización</span>
+            <h1>Estado del servicio</h1>
+            <p class="doc-lede">Monitoreo en tiempo real de la API que alimenta FilmsGapsPlus: disponibilidad, tiempos de respuesta e incidencias recientes.</p>
+        </section>
+
+        <div id="status-loading" class="status-loading"><i class="fas fa-circle-notch"></i> Consultando el estado del monitor…</div>
+
+        <div id="status-error" class="status-error" style="display:none;">
+            <i class="fas fa-plug-circle-xmark"></i>
+            <h2>No se pudo obtener el estado</h2>
+            <p>Revisa tu conexión o consulta el monitor oficial directamente.</p>
+            <a class="btn btn-primary" data-official-link href="#" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> Abrir monitor oficial</a>
+        </div>
+
+        <div id="status-main" style="display:none;">
+            <section class="status-card status-hero" id="status-hero">
+                <span id="status-pill">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Consultando…</span>
+                </span>
+                <div class="status-hero-sub">
+                    <p id="status-sub"></p>
+                    <p id="status-updated"></p>
+                </div>
+            </section>
+
+            <section class="status-grid" id="uptime-grid"></section>
+
+            <section class="status-card" style="margin-bottom:1.4rem;">
+                <h2 class="status-section-title"><i class="fas fa-gauge-high"></i> Tiempo de respuesta</h2>
+                <div class="resp-stats-row">
+                    <div class="resp-stat"><b id="resp-avg">—</b><span>Promedio</span></div>
+                    <div class="resp-stat"><b id="resp-min">—</b><span>Mínimo</span></div>
+                    <div class="resp-stat"><b id="resp-max">—</b><span>Máximo</span></div>
+                    <div class="resp-stat"><b id="resp-total">—</b><span>Comprobaciones</span></div>
+                </div>
+                <div id="resp-spark"></div>
+            </section>
+
+            <section class="status-card" style="margin-bottom:1.4rem;">
+                <h2 class="status-section-title"><i class="fas fa-chart-simple"></i> Disponibilidad de los últimos 90 días</h2>
+                <div class="history-bars" id="history-bars"></div>
+                <div class="history-meta">
+                    <span id="history-count"></span>
+                    <span class="history-legend">
+                        <span><span class="legend-dot" style="background:#22c55e"></span> Operativo</span>
+                        <span><span class="legend-dot" style="background:#f59e0b"></span> Degradado</span>
+                        <span><span class="legend-dot" style="background:#ef4444"></span> Caído</span>
+                    </span>
+                </div>
+            </section>
+
+            <section class="status-card">
+                <h2 class="status-section-title"><i class="fas fa-clock-rotate-left"></i> Actividad reciente</h2>
+                <ul class="events-list" id="events-list"></ul>
+            </section>
+        </div>
+    </main>
+
+    <div id="footer-root"></div>
+    <script src="js/footer.js"></script>
+    <script src="js/status.js"></script>
+</body>
+</html>

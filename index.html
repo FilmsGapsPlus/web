@@ -5,50 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FilmsGapsPlus | Ver Películas, Series y TV Online en Vivo sin Anuncios</title>
     <link rel="icon" href="img/icon_filmsgapsplus.png" type="image/png">
+    <link rel="apple-touch-icon" href="img/icon_filmsgapsplus.png">
     <meta name="description" content="Ver películas, series y canales de TV online en vivo sin anuncios. FilmsGapsPlus ofrece streaming rápido, estable y optimizado para móvil, PC y Smart TV, sin registros innecesarios.">
-    <meta name="keywords" content="ver películas online, ver series online, tv online en vivo, canales de tv sin anuncios, streaming sin publicidad, películas HD online, series HD online, plataforma de streaming gratuita">
     <meta name="author" content="FilmsGapsPlus">
     <meta name="robots" content="index, follow, max-image-preview:large">
     <link rel="canonical" href="https://filmsgapsplus.github.io/web">
-    <meta name="theme-color" content="#070707">
+    <meta name="theme-color" content="#050506">
 
     <!-- Open Graph (Facebook, WhatsApp, Telegram) -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FilmsGapsPlus">
+    <meta property="og:locale" content="es_LA">
     <meta property="og:title" content="FilmsGapsPlus | Películas, Series y TV Online sin Anuncios">
     <meta property="og:description" content="Streaming de películas, series y TV online en vivo sin anuncios. Rápido, seguro y sin interrupciones.">
     <meta property="og:url" content="https://filmsgapsplus.github.io/web">
-    <meta property="og:image" content="img/icon_filmsgapsplus.png">
+    <meta property="og:image" content="https://filmsgapsplus.github.io/web/img/icon_filmsgapsplus.png">
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="FilmsGapsPlus | Streaming sin Anuncios">
     <meta name="twitter:description" content="Películas, series y TV online en vivo sin anuncios. Disfruta streaming estable y sin interrupciones.">
-    <meta name="twitter:image" content="img/icon_filmsgapsplus.png">
+    <meta name="twitter:image" content="https://filmsgapsplus.github.io/web/img/icon_filmsgapsplus.png">
 
     <!-- PWA / Apple -->
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FilmsGapsPlus">
 
     <!-- Descarga -->
     <meta name="download_url" content="https://filmsgapsplus.github.io/home">
 
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/styles.css">
-    <!-- Agregado HLS.js para reproducir canales -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="css/styles.css?v=20260823">
 </head>
 <body>
-    <header>
-        <div class="logo">
-            FilmsGaps <span>Plus</span>
-        </div>
+    <header id="site-header">
+        <a class="logo" href="/">FilmsGaps <span>Plus</span></a>
         <div class="search-container">
             <input type="text" id="search-input" placeholder="Buscar películas o series...">
-            <button id="search-btn">
-                <i class="material-icons">search</i>
+            <button id="search-btn" aria-label="Buscar">
+                <i class="fas fa-search"></i>
             </button>
         </div>
     </header>
@@ -57,9 +55,8 @@
         <span>Cargando contenido...</span>
     </div>
     <main>
-        <div class="hero-section" id="hero-section"></div>
-        <div class="nav-tabs" id="tabs">
-            <!-- Cambiado "Todo" por "Canales" -->
+        <div class="hero-section" id="hero-section" style="display:none;"></div>
+        <div class="nav-tabs" id="tabs" style="display:none;">
             <div class="nav-tab" data-content="channels">
                 <i class="fas fa-satellite-dish"></i> Canales
             </div>
@@ -72,167 +69,58 @@
         </div>
         <div id="content-container"></div>
     </main>
-    <!-- Modal de detalles de película -->
-    <div class="modal" id="movie-modal">
+
+    <!-- Reproductor fullscreen de canales en vivo (@videojs/html) -->
+    <div class="channel-player-container" id="channel-player-container">
+        <button class="channel-player-close" id="channel-player-close" aria-label="Cerrar reproductor">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="channel-video-stage">
+            <video-player id="channel-vjs-player" class="channel-video-player">
+                <video-minimal-skin>
+                    <video id="channel-video" playsinline></video>
+                </video-minimal-skin>
+            </video-player>
+            <div class="channel-video-loading" id="channel-video-loading">
+                <div class="spinner"></div>
+                <span>Cargando canal...</span>
+            </div>
+            <div class="channel-video-error" id="channel-video-error" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>No se pudo cargar la transmisión</span>
+                <button class="btn btn-primary" id="channel-retry-btn">
+                    <i class="fas fa-redo"></i> Reintentar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-root"></div>
+
+    <!-- Modal de géneros -->
+    <div class="modal" id="genres-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <img class="modal-backdrop" id="modal-backdrop" src="/placeholder.svg" alt="Backdrop">
-                <img class="modal-poster" id="modal-poster" src="/placeholder.svg" alt="Poster">
-                <button class="modal-close" id="modal-close">
+                <h2 class="modal-title"><i class="fas fa-shapes"></i> Géneros disponibles</h2>
+                <button class="modal-close" id="genres-modal-close" aria-label="Cerrar">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-body">
-                <h1 class="modal-title" id="modal-title"></h1>
-                <div class="modal-meta">
-                    <span id="modal-year"><i class="far fa-calendar-alt"></i><span></span></span>
-                    <span id="modal-duration"><i class="far fa-clock"></i><span></span></span>
-                    <span id="modal-rating"><i class="fas fa-star"></i><span></span></span>
-                    <span id="modal-type"><i class="fas fa-tag"></i><span></span></span>
-                </div>
-                <div class="modal-genres" id="modal-genres"></div>
-                <p class="modal-description" id="modal-description"></p>
-                <div class="modal-cast">
-                    <h3 class="cast-title"><i class="fas fa-users"></i> Reparto</h3>
-                    <div class="cast-list" id="cast-list"></div>
-                </div>
-                <div id="movie-servers-section" class="servers-section">
-                    <h3 class="servers-title"><i class="fas fa-server"></i> Opciones de reproducción</h3>
-                    <div class="server-tabs" id="server-tabs"></div>
-                    <div id="server-contents"></div>
-                </div>
-                <div id="series-seasons-section" class="seasons-section" style="display: none;">
-                    <h3 class="seasons-title"><i class="fas fa-layer-group"></i> Temporadas</h3>
-                    <div class="seasons-tabs" id="seasons-tabs"></div>
-                    <div id="seasons-contents"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Reproductor de video -->
-    <div class="player-container" id="player-container">
-        <div class="player-content">
-            <div class="player-header">
-                <div class="player-title" id="player-title">
-                    <i class="fas fa-play-circle"></i> Reproduciendo
-                </div>
-                <button class="player-close" id="player-close">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <iframe id="player-iframe" class="player-iframe" allowfullscreen></iframe>
-        </div>
-    </div>
-    <!-- Agregado reproductor HLS para canales -->
-    <div class="channel-player-container" id="channel-player-container">
-        <div class="channel-player-content">
-            <div class="channel-player-header">
-                <div class="channel-player-info">
-                    <img id="channel-player-logo" class="channel-player-logo" src="/placeholder.svg" alt="Logo">
-                    <div class="channel-player-title" id="channel-player-title">
-                        <i class="fas fa-broadcast-tower"></i> <span>En vivo</span>
-                    </div>
-                </div>
-                <button class="channel-player-close" id="channel-player-close">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="channel-video-wrapper">
-                <video id="channel-video" class="channel-video" controls autoplay playsinline></video>
-                <div class="channel-video-loading" id="channel-video-loading">
-                    <div class="spinner"></div>
-                    <span>Cargando canal...</span>
-                </div>
-                <div class="channel-video-error" id="channel-video-error" style="display: none;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>Error al cargar el canal</span>
-                    <button class="btn btn-primary" id="channel-retry-btn">
-                        <i class="fas fa-redo"></i> Reintentar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <footer>
-        <div class="footer-content">
-            <div>
-                <div class="logo2">
-                    FilmsGaps <span>Plus</span>
-                </div>
-                <p class="footer-description">
-                    Disfruta de las mejores películas y series online en alta calidad. FilmsGapsPlus te ofrece el mejor catálogo de entretenimiento sin costo.
-                </p>
-                <div class="footer-social">
-                    <a href="https://www.tiktok.com/@filmsgapsplus" class="social-icon"><i class="fab fa-tiktok"></i></a>
-                    <a href="https://www.paypal.com/donate/?hosted_button_id=PGFHSUNXYZPDJ" class="social-icon"><i class="fab fa-paypal"></i></a>
-                    <a href="https://t.me/FilmsGapsPlusSoporte" class="social-icon"><i class="fab fa-telegram"></i></a>
-                </div>
-            </div>
-            <div>
-                <h3 class="footer-title">Enlaces rápidos</h3>
-                <ul class="footer-links">
-                    <li><a href="#"><i class="fas fa-chevron-right"></i> Inicio</a></li>
-                    <li><a href="#" id="genres-link"><i class="fas fa-chevron-right"></i> Géneros</a></li>
-                </ul>
-            </div>
-            <div>
-                <h3 class="footer-title">Backend status</h3>
-                <ul class="footer-links">
-                    <li><a href="https://stats.uptimerobot.com/JeBldYwWkh"><i class="fas fa-cloud"></i> Status</a></li>
-                </ul>
-            </div>
-            <div>
-                <h3 class="footer-title">Términos</h3>
-                <ul class="footer-links">
-                    <li><a href="terminos.html"><i class="fas fa-file-alt"></i> Términos y condiciones</a></li>
-                    <li><a href="privacidad.html" id="privacy-link"><i class="fas fa-shield-alt"></i> Política de privacidad</a></li>
-                </ul>
-            </div>
-            <div>
-                <h3 class="footer-title">Feedback</h3>
-                <p>
-                    Envíanos tus comentarios y sugerencias para mejorar nuestra plataforma.
-                </p>
-                <br>
-                <div class="newsletter-form">
-                    <input type="email" class="newsletter-input" placeholder="Tu correo electrónico">
-                    <button class="newsletter-btn" id="feedback-btn"><i class="fas fa-paper-plane"></i></button>
-                </div>
-                <p class="footer-small-text">
-                    O escríbenos directamente a: <br>filmsgapsplusdevelopers@gmail.com
-                </p>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>
-                Todos los derechos reservados.
-            </p>
-        </div>
-    </footer>
-    <!-- Modal de géneros -->
-    <div class="modal" id="genres-modal">
-        <div class="modal-content" style="max-width: 800px;">
-            <div class="modal-header" style="height: auto; padding: 1rem;">
-                <h2 class="modal-title">Géneros disponibles</h2>
-                <button class="modal-close" id="genres-modal-close">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body" style="padding: 2rem;">
                 <div class="genres-grid"></div>
             </div>
         </div>
     </div>
     <!-- Modal de selección de países para canales -->
     <div class="modal" id="countries-modal">
-        <div class="modal-content" style="max-width: 900px;">
-            <div class="modal-header" style="height: auto; padding: 1.5rem; background: var(--card-bg);">
-                <h2 class="modal-title" style="margin: 0;"><i class="fas fa-globe" style="color: var(--accent-color);"></i> Selecciona un país</h2>
-                <button class="modal-close" id="countries-modal-close">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-globe"></i> Selecciona un país</h2>
+                <button class="modal-close" id="countries-modal-close" aria-label="Cerrar">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="modal-body" style="padding: 1.5rem; padding-left: 1.5rem;">
+            <div class="modal-body">
                 <div class="countries-search-container">
                     <input type="text" id="countries-search" class="countries-search-input" placeholder="Buscar país...">
                     <i class="fas fa-search countries-search-icon"></i>
@@ -241,6 +129,11 @@
             </div>
         </div>
     </div>
+
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@videojs/html/cdn/video-minimal.js"></script>
+    <script src="js/url-utils.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/footer.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>
